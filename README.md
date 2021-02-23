@@ -27,15 +27,15 @@ Files
 - utils/utils.dlv: contains some utils rules 
 - dlv: Linux version of dlv
 - examples/headlamp/ : Headlamp System (HLS) case study
-     headlamp/architecture-headlamp-not-ctl-saf-1.dlv : contains architecture of HLS for safety exploration mode
-     headlamp/architecture-headlamp-not-mit-sec-1.dlv : contains architecture of HLS for security exploration mode
-     headlamp/architecture-headlamp-not-ctl-saf-2.dlv : contains architecture of HLS for co-analysis: consequences on safety
-     headlamp/architecture-headlamp-not-mit-sec-2.dlv : contains architecture of HLS for co-analysis: consequences on security
+     - headlamp/architecture-headlamp-not-ctl-saf-1.dlv : contains architecture of HLS for safety exploration mode
+     - headlamp/architecture-headlamp-not-mit-sec-1.dlv : contains architecture of HLS for security exploration mode
+     - headlamp/architecture-headlamp-not-ctl-saf-2.dlv : contains architecture of HLS for co-analysis: consequences on safety
+     - headlamp/architecture-headlamp-not-mit-sec-2.dlv : contains architecture of HLS for co-analysis: consequences on security
 - examples/battery/ : Battery Management System (BMS) case study
-     headlamp/architecture-battery-not-ctl-saf-1.dlv : contains architecture of BMS for safety exploration mode
-     headlamp/architecture-battery-not-mit-sec-1.dlv : contains architecture of BMS for security exploration mode
-     headlamp/architecture-battery-not-ctl-saf-2.dlv : contains architecture of BMS for co-analysis: consequences on safety
-     headlamp/architecture-battery-not-mit-sec-2.dlv : contains architecture of BMS for co-analysis: consequences on security
+     - headlamp/architecture-battery-not-ctl-saf-1.dlv : contains architecture of BMS for safety exploration mode
+     - headlamp/architecture-battery-not-mit-sec-1.dlv : contains architecture of BMS for security exploration mode
+     - headlamp/architecture-battery-not-ctl-saf-2.dlv : contains architecture of BMS for co-analysis: consequences on safety
+     - headlamp/architecture-battery-not-mit-sec-2.dlv : contains architecture of BMS for co-analysis: consequences on security
 
 -----------------------------------------------------------------
 Instruction for running the HLS case study
