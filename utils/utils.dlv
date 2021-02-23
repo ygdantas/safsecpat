@@ -1,0 +1,22 @@
+sw(CP) :- cp(CP), 
+		  cp(CP1), 
+		  dep(CP,ECU), 
+		  ecu(ECU) . 
+		  
+sw(CP) :- cp(CP),
+		  cp(CP1),
+		  sw(CP1),
+		  subcp(CP,CP1).
+
+
+% Information Flow Relation:
+before(CH,CH,IF) :-
+			ch(CH,_,_),
+			if(IF,PATH),
+			#member(CH,PATH).
+
+before(CH1,CH2,IF) :- 
+			before(CH1,CH3,IF),
+			before(CH3,CH2,IF) .
+
+

@@ -1,0 +1,73 @@
+%% ./dlv examples/battery/architecture-battery-not-mit-sec-1.dlv  safety/safety.dlv security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=threat -filter=firewall -filter=mitby -filter=secMonCP -filter=secMonCH
+
+% === Architecture ===
+% Components
+% bms -> Battery Management System
+% bat -> Battery
+% ci -> Charging interface
+% fw -> firewall
+cp(bms).
+cp(bat).
+cp(ci) .
+%cp(fw).
+cp(bm).
+subcp(bm,bms).
+
+% Logical Channels
+ch(ch1,bat,bm).
+ch(ch2,bm,ci). 
+ch(ch3,ci,bat).
+
+%dep(ch20,can).
+%ch(ch20,bms,fw).
+%ch(ch21,fw,ci).
+
+
+% physical components
+  % - ECUs
+  % - comm mediums
+can(can).
+dep(ch2,can).
+ecu(ecu).
+%dep(bms,ecu).
+hw(bat).
+hw(ci).
+
+%%% Identified hazards %%%
+hz([hzBat,bat,cat]) .
+fl([flBm,bm,err,cat]).
+fl([flCan,can,err,cat]).
+
+fl2Hz(flBm,hzBat) .
+fl2Hz(flCan,hzBat) .
+
+tol([flCan,can,err,cat]).
+tolby([flCan,can,err,cat],replacement).
+
+%%% PATTERN - Safety Monitor
+cp(safMon).
+subcp(safMon,bm).
+ch(min,bat,safMon).
+ch(mout,bm,safMon).
+ch(fs,safMon,bm).
+
+safMon(safMon,bm,[ch1],[ch2],fs,[min],[mout]).
+
+%%%% SECURITY %%%
+%% public(CP), where CP is public component that may be accessible by an attacker
+public(ci).
+
+%% Information flow
+
+if(if1,[ch1,min,mout,fs,ch2,ch3]).
+before(ch1,min,if1).
+before(min,mout,if1).
+before(mout,fs,if1).
+before(fs,ch2,if1).
+before(ch2,ch3,if1).
+
+%% Uncomment for exploration
+explore(1,firewall) .
+explore(1,secMonCH) .
+explore(1,secMonCP) .
+:- nmit([Z,V,P,T]) .

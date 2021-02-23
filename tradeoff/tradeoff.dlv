@@ -1,0 +1,481 @@
+%%%%%%%%%%%%% Security to Safety %%%%%%%%%%%%%
+
+%% Firewall conflict
+%%% There is a hazard associated to the firewall, if a firewall is deployed. 
+%%% There is a sub-hazard associated to the above hazard, if there is a hazard associated to the component 
+%%%	 the receives outputs from the deployed firewall
+
+%fl([CP,CP,err,cat]) :- firewall(ID,CP,Comm,_,_,FWCP),
+%					  can(Comm),
+%					  dep(CH,Comm),
+%					  fl([FL,FWCP,omission,cat]) .
+
+%fl([Comm,Comm,err,cat]) :- firewall(ID,Comm,CP,_,_,FWCP),
+%					  can(Comm),
+%					  dep(CH,Comm),
+%					  fl([FL,FWCP,omission,cat]) .
+
+%%hz([CP,err,cat]) :- firewall(ID,Comm,CP,_,_,FWCP),
+%%					  can(Comm),
+%%					  dep(navigGW,Comm).
+%%				      ch(CH,Comm,CP),
+%%					  hz([FWCP,omission,cat]) .
+
+%%hz([Comm,err,cat]) :- firewall(ID,Comm,CP,_,_,FWCP),
+%%				      ch(CH,CP,Comm),
+%%					  hz([FWCP,omission,cat]) .
+
+% TODO: new HZ associated to all elements after CP (in the information flow)?					  
+
+fl([ID,ID,omission,cat]) :- firewall(ID,Comm,CP,_,_) .
+
+% If a firewall (FWCP) is deployed between Comm and CP. There is a failure (ID2) on FWCP, a
+% failure on Comm (ID3), and the latter failure (ID3) leads to a hazard (IDH). Then the failure (ID2)
+% on the firewall leads to the same hazard (IDH)
+%fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_,FWCP),
+%					   fl([ID2,FWCP,TYPE1,SEV1]),
+%					   fl([ID3,Comm,TYPE2,SEV2]),
+%					   hz([IDH,CP2,TYPE3]),
+%					   fl2Hz(ID3,IDH) .
+
+% There is a propagation of failure (erroneous) caused by a firewall
+% if there is a failure (erroneous) in any component before the firewall
+% condition: Comm is before CP
+% condition: ch(CH3,CPI,CPO), fl([ID3,CPI,err,SEV2]),
+fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_),
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   can(Comm),
+					   dep(CH1,Comm),
+					   ch(CH2,_,CP),
+					   if(IF,PATH),
+					   before(CH1,CH2,IF),
+					   ch(CH3,CPI,CPO),
+					   before(CH3,CH1,IF),
+					   fl([ID3,CPI,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+% There is a propagation of failure (erroneous) caused by a firewall
+% if there is a failure (erroneous) in any component before the firewall
+% condition: Comm is before CP
+% condition: ch(CH3,CPI,CPO), fl([ID3,CPO,err,SEV2]),
+fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_),
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   can(Comm),
+					   dep(CH1,Comm),
+					   ch(CH2,_,CP),
+					   if(IF,PATH),
+					   before(CH1,CH2,IF),
+					   ch(CH3,CPI,CPO),
+					   before(CH3,CH1,IF),
+					   fl([ID3,CPO,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+
+% There is a propagation of failure (erroneous) caused by a firewall
+% if there is a failure (erroneous) in any component before the firewall
+% condition: CP is before Comm
+% condition: ch(CH3,CPI,CPO), fl([ID3,CPI,err,SEV2]),
+fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_),
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   can(Comm),
+					   dep(CH1,Comm),
+					   ch(CH2,_,CP),
+					   if(IF,PATH),
+					   before(CH2,CH1,IF),
+					   ch(CH3,CPI,CPO),
+					   before(CH3,CH2,IF),
+					   fl([ID3,CPI,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+% There is a propagation of failure (erroneous) caused by a firewall
+% if there is a failure (erroneous) in any component before the firewall
+% condition: CP is before Comm
+% condition: ch(CH3,CPI,CPO), fl([ID3,CPO,err,SEV2]),
+fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_),
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   can(Comm),
+					   dep(CH1,Comm),
+					   ch(CH2,_,CP),
+					   if(IF,PATH),
+					   before(CH2,CH1,IF),
+					   ch(CH3,CPI,CPO),
+					   before(CH3,CH2,IF),
+					   fl([ID3,CPO,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+% There is a propagation of failure (err				   
+
+
+
+
+% Y (failure) -> X (failure) -> BMS  -> firewall (new failure) -> ci () -> battery 
+% TODO: Failure propagation? Using IF?
+
+%fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_,FWCP),
+%					   fl([ID2,FWCP,TYPE,SEV1]),
+%					   fl([ID3,CP,TYPE2,SEV2]),
+%					   hz([IDH,CP2,TYPE3]),
+%					   fl2Hz(ID3,IDH) .
+
+
+%subHz([FWCP,TYPE,SEV],[Comm,TYPE1,SEV2]) :- firewall(ID,CP,Comm,_,_,FWCP), 
+%											hz([FWCP,TYPE,SEV]), 
+%											hz([CP,TYPE1,SEV2]) .
+
+%subHz([FWCP,TYPE,SEV],[CP,TYPE1,SEV2]) :- firewall(ID,Comm,CP,_,_,FWCP), 
+%											hz([FWCP,TYPE,SEV]), 
+%											hz([CP,TYPE1,SEV2]) .
+
+conflSec2Saf(ID, fl([ID2,ID,TYPE,SEV])) :- firewall(ID,Comm,CP,_,_), 
+											fl([ID2,ID,TYPE,SEV]),
+											ntol([ID2,ID,TYPE,SEV]) .
+
+
+%conflSec2Saf(FWCP, hz([FWCP,TYPE,SEV])) :- firewall(ID,Comm,CP,_,_,FWCP), 
+%											hz([FWCP,TYPE,SEV]),
+%											nctl([FWCP,TYPE,SEV]) .
+% TODO:  Can we show that the new fault due to the firewall enable again the hazard on the battery?
+%%% Answer: Should be possible by followign the sub-hazard relation
+
+%% Security monitor channel conflict
+
+%%   * cat -> catastrophic
+%%   * haz -> hazardeous
+%%   * maj -> major
+%%   * min -> minimal
+
+% Assumption that an engineer has tested the severity of using a safety monitor and classified its severity (cat, haz,maj,min)
+%% TODO: assumption? Should we change it to assumptionTypeOfHz?
+asmFL([ID,ID,late,cat]) v 
+asmFL([ID,ID,late,haz]) v 
+asmFL([ID,ID,late,maj]) v
+asmFL([ID,ID,late,min]) :- secMonCH(ID,CH,_,_,_) .
+
+%%% There is a hazard associated to the channel associated to the security monitor (channel), if a security monitor is deployed and there is a hazard associated
+%%%% to the security monitor.
+%fl([CH,CH,late,SEV]) :- secMonCH(ID,CH,_,_,_,SEMOCH), 
+%					   hz([SEMOCH,late,SEV]) .
+%hz([CH,late,SEV]) :- secMonCH(ID,CH,_,_,_,SEMOCH), 
+%					   hz([SEMOCH,late,SEV]) .
+
+%%% The new hazard associated to the security monitor is a sub-hazard of the hazard associated to the channel associated to the security monitor
+%subHz([SEMOCH,late,SEV], [CH,late,SEV]) :- 	secMonCH(ID,CH,_,_,_,SEMOCH),
+%											hz([SEMOCH,late,SEV]) .
+
+%%% There is a hazard associated to the security monitor (channel), if a security monitor is deployed. Assumption that an engineer has classified the severity of the hazard 
+%hz([SEMOCH,late,SEV]) :- secMonCH(ID,CH,_,_,_,SEMOCH), assumption([SEMOCH,late,SEV]) .
+fl([ID,ID,late,SEV]) :- secMonCH(ID,CH,_,_,_), 
+						        asmFL([ID,ID,late,SEV]) .
+
+% There is a propagation of failure (erroneous) caused by a secMonCH
+% if there is a failure (erroneous) associated to CH
+fl2Hz(ID2,IDH) :- secMonCH(ID,CH,_,_,_), 
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   fl([ID3,CH,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+
+% There is a propagation of failure (erroneous) caused by a secMonCH
+% if there is a failure (erroneous) in any component before the channel where secMonCH is deployed
+% condition: fl([ID3,CPI,err,SEV2]),
+fl2Hz(ID2,IDH) :- secMonCH(ID,CH,_,_,_), 
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   ch(CH,_,_),
+					   ch(CH2,CPI,CPO),
+					   if(IF,PATH),
+					   before(CH2,CH,IF),					   
+					   fl([ID3,CPI,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+
+% There is a propagation of failure (erroneous) caused by a secMonCH
+% if there is a failure (erroneous) in any component before the channel where secMonCH is deployed
+% condition: fl([ID3,CPO,err,SEV2]),
+fl2Hz(ID2,IDH) :- secMonCH(ID,CH,_,_,_), 
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   ch(CH,_,_),
+					   ch(CH2,CPI,CPO),
+					   if(IF,PATH),
+					   before(CH2,CH,IF),					   
+					   fl([ID3,CPO,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .
+
+
+
+% There is a conflict (security to safety) caused by SEMOCH [with a new hazard associated to SEMOCH]
+conflSec2Saf(ID, fl([ID2,ID,TYPE,SEV])) :- secMonCH(ID,CH,_,_,_), 
+												fl([ID2,ID,TYPE,SEV]),
+												ntol([ID2,ID,TYPE,SEV]) .
+
+
+%% Security monitor component conflict
+%%% There is a hazard associated to the security monitor (component), if a security monitor is deployed. 
+
+% Assumption that an engineer has tested the severity of using a safety monitor and classified its severity (cat, haz,maj,min)
+%% TODO: assumption? Should we change it to assumptionTypeOfHz?
+asmFL([ID,ID,late,cat]) v 
+asmFL([ID,ID,late,haz]) v 
+asmFL([ID,ID,late,maj]) v
+asmFL([ID,ID,late,min]) :- secMonCP(ID,CP,_,_,_,_,_) .
+
+%%% There is a hazard associated to the component associated to the security monitor (component), if a security monitor is deployed and there is a hazard associated
+%%%% to the security monitor.
+%hz([CP,late,SEV]) :- secMonCP(ID,CP,_,_,_,_,_,SEMO),
+%						hz([SEMO,late,SEV]) .
+
+%%% The new hazard associated to the security monitor is a sub-hazard of the hazard associated to the component associated to the security monitor
+%subHz([SEMO,late,SEV], [CP,late,SEV]) :- 	secMonCP(ID,CP,_,_,_,_,_,SEMO),
+%											hz([SEMO,late,SEV]) .
+
+%%% There is a hazard associated to the security monitor (component), if a security monitor is deployed. Assumption that an engineer has classified the severity of the hazard 
+%hz([SEMO,late,SEV]) :- secMonCP(ID,CP,_,_,_,_,_,SEMO),
+%						assumption([SEMO,late,SEV]) .
+fl([ID,ID,late,SEV]) :- secMonCP(ID,CP,_,_,_,_,_),
+						    asmFL([ID,ID,late,SEV]) .
+
+% There is a propagation of failure (erroneous) caused by a secMonCP
+% if there is a failure (erroneous) in any component before the CP (or in CP) where secMonCP is deployed
+% condition: fl([ID3,CPI,err,SEV2]),
+fl2Hz(ID2,IDH) :- secMonCP(ID,CP,_,_,_,_,_),
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   ch(CH1,_,CP),
+					   ch(CH2,CPI,CPO),
+					   if(IF,PATH),
+					   before(CH2,CH1,IF),					   
+					   fl([ID3,CPI,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .					   
+
+
+% There is a propagation of failure (erroneous) caused by a secMonCP
+% if there is a failure (erroneous) in any component before the CP (or in CP) where secMonCP is deployed
+% condition: fl([ID3,CPO,err,SEV2]),
+fl2Hz(ID2,IDH) :- secMonCP(ID,CP,_,_,_,_,_),
+					   fl([ID2,ID,TYPE1,SEV1]),
+					   ch(CH1,_,CP),
+					   ch(CH2,CPI,CPO),
+					   if(IF,PATH),
+					   before(CH2,CH1,IF),					   
+					   fl([ID3,CPO,err,SEV2]),
+					   hz([IDH,CP2,TYPE3]),
+					   fl2Hz(ID3,IDH) .					   
+
+
+% There is a conflict (security to safety) caused by SEMO [with a new hazard associated to SEMO]
+conflSec2Saf(ID, fl([ID2,ID,TYPE,SEV])) :- secMonCP(ID,CP,_,_,_,_,_), 
+											fl([ID2,ID,TYPE,SEV]),
+											ntol([ID2,ID,TYPE,SEV]) .
+
+
+
+%%%%%%%%%%%%% Safety to Security %%%%%%%%%%%%%
+
+%% Safety monitor conflict
+%%% There is a new potential threat caused by the safety monitor 
+%%%    if there is a monitor associated to a component CP, and there is a hazard associated to CP
+
+%threat([CP,L,TTP,SEV]) .
+
+%severe (sev) <- catastrophic (cat)
+potThreat([ID2,int,sev]) :- safMon(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,cat]) .
+
+conflSaf2Sec(ID2, potThreat([ID2,int,sev])) :- safMon(ID2,CP,_,_,_,_,_),
+								    			fl([ID,CP,err,cat]),
+								    			threat([ID2,L,int,sev]), 
+								    			nmit([ID2,L,int,sev]) .
+
+%major (maj) <- hazardeous (haz)
+potThreat([ID2,int,maj]) :- safMon(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,haz]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,maj])) :- safMon(ID2,CP,_,_,_,_,_),
+												fl([ID,CP,err,haz]),
+								    			threat([ID2,L,int,maj]), 
+								    			nmit([ID2,L,int,maj]) .
+
+%moderate (mod) <- major (maj)
+potThreat([ID2,int,mod]) :- safMon(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,maj]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,mod])) :- safMon(ID2,CP,_,_,_,_,_),
+												fl([ID,CP,err,maj]),
+								    			threat([ID2,L,int,mod]), 
+								    			nmit([ID2,L,int,mod]) .																					
+%negligible (neg) <- minimal (min)
+potThreat([ID2,int,neg]) :- safMon(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,min]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,neg])) :- safMon(ID2,CP,_,_,_,_,_),
+												fl([ID,CP,err,min]),
+								    			threat([ID2,L,int,neg]), 
+								    			nmit([ID2,L,int,neg]) . 								
+ 
+
+%% Protected Single Channel (prtSglCh) conflict
+%%% There is a new potential threat caused by the safety monitor 
+%%%    if there is a monitor associated to a component CP, and there is a hazard associated to CP
+
+%threat([CP,L,TTP,SEV]) .
+% prtSglCh(ID,CP,IC,OC,FS,MIN,MOUT,PSC) 
+
+%severe (sev) <- catastrophic (cat)
+potThreat([ID2,int,sev]) :- prtSglCh(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,cat]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,sev])) :- prtSglCh(ID2,CP,_,_,_,_,_),
+								    			fl([ID,CP,err,cat]),
+								    			threat([PSC,L,int,sev]), 
+								    			nmit([PSC,L,int,sev]) .
+
+%major (maj) <- hazardeous (haz)
+potThreat([ID2,int,maj]) :- prtSglCh(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,haz]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,maj])) :- prtSglCh(ID2,CP,_,_,_,_,_),
+												fl([ID,CP,err,haz]),
+								    			threat([ID2,L,int,maj]), 
+								    			nmit([ID2,L,int,maj]) .
+
+%moderate (mod) <- major (maj)
+potThreat([ID2,int,mod]) :- prtSglCh(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,maj]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,mod])) :- prtSglCh(ID2,CP,_,_,_,_,_),
+												fl([ID,CP,err,maj]),
+								    			threat([ID2,L,int,mod]), 
+								    			nmit([ID2,L,int,mod]) .																					
+%negligible (neg) <- minimal (min)
+potThreat([ID2,int,neg]) :- prtSglCh(ID2,CP,_,_,_,_,_),
+							fl([ID,CP,err,min]) .
+conflSaf2Sec(ID2, potThreat([ID2,int,neg])) :- prtSglCh(ID2,CP,_,_,_,_,_),
+												fl([ID,CP,err,min]),
+								    			threat([ID2,L,int,neg]), 
+								    			nmit([ID2,L,int,neg]) . 
+
+%% Watchdog conflict
+%%% There is a new potential threat caused by the watchdog 
+%%%    if there is a watchdog associated to a component CP, and there is a hazard associated to CP
+
+%severe (sev) <- catastrophic (cat)
+potThreat([ID,avl,sev]) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+						   fl([ID2,CP,loss,cat]) .
+
+conflSaf2Sec(ID, potThreat([ID,avl,sev])) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+								    			fl([ID2,CP,loss,cat]),
+								    			threat([ID,avl,sev]), 
+								    			nmit([ID,avl,sev]) .
+
+%major (maj) <- hazardeous (haz)
+potThreat([ID,avl,maj]) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+							 fl([ID2,CP,loss,haz]) .
+
+conflSaf2Sec(ID, potThreat([ID,avl,maj])) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+								    			fl([ID2,CP,err,haz]),
+								    			threat([ID,avl,maj]), 
+								    			nmit([ID,avl,maj]) .
+
+%moderate (mod) <- major (maj)
+potThreat([ID,avl,mod]) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+							 fl([ID2,CP,loss,maj]) .
+
+conflSaf2Sec(ID, potThreat([ID,avl,mod])) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+								    			fl([ID2,CP,err,maj]),
+								    			threat([ID,avl,mod]), 
+								    			nmit([ID,avl,mod]) .
+
+%negligible (neg) <- minimal (min)
+potThreat([ID,avl,neg]) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+							 fl([ID2,CP,loss,min]) .
+
+conflSaf2Sec(ID, potThreat([ID,avl,neg])) :- watchDog(ID,CP,CHSCWD,CHLVSWD),
+								    			fl([ID2,CP,loss,min]),
+								    			threat([ID,avl,neg]), 
+								    			nmit([ID,avl,neg]) .
+
+
+%% Heterogeneous Duplex Redundancy (HDR) conflict
+%%% There is a new potential threat caused by the HDR 
+%%%    if there is a HDR is deployed, the potential threat is associated to the Voter
+%hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) .
+
+%severe (sev) <- catastrophic (cat)
+potThreat([VOTERCP,int,sev]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT,OUTCP),
+							 	fl([ID2,SC1,err,cat]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,sev])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT,OUTCP),
+								    			fl([ID2,SC1,err,cat]),
+								    			threat([VOTERCP,int,sev]), 
+								    			nmit([VOTERCP,int,sev]) .
+
+potThreat([VOTERCP,int,sev]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+							 	fl([ID2,SC2,err,cat]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,sev])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+								    			fl([ID2,SC2,err,cat]),
+								    			threat([VOTERCP,int,sev]), 
+								    			nmit([VOTERCP,int,sev]) .
+
+
+%major (maj) <- hazardeous (haz)
+potThreat([VOTERCP,int,maj]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT,OUTCP),
+							 	fl([ID2,SC1,err,haz]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,maj])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT,OUTCP),
+								    			fl([ID2,SC1,err,haz]),
+								    			threat([VOTERCP,int,maj]), 
+								    			nmit([VOTERCP,int,maj]) .
+
+potThreat([VOTERCP,int,maj]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT,OUTCP),
+							 	fl([ID2,SC2,err,haz]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,maj])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT,OUTCP),
+								    			fl([ID2,SC2,err,haz]),
+								    			threat([VOTERCP,int,maj]), 
+								    			nmit([VOTERCP,int,maj]) .
+
+
+
+
+%moderate (mod) <- major (maj)
+potThreat([VOTERCP,int,mod]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+							 	fl([ID2,SC1,err,maj]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,mod])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+								    			fl([ID2,SC1,err,maj]),
+								    			threat([VOTERCP,int,mod]), 
+								    			nmit([VOTERCP,int,mod]) .
+
+potThreat([VOTERCP,int,mod]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+							 	fl([ID2,SC2,err,maj]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,mod])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+								    			fl([ID2,SC2,err,maj]),
+								    			threat([VOTERCP,int,mod]), 
+								    			nmit([VOTERCP,int,mod]) .
+
+%negligible (neg) <- minimal (min)
+potThreat([VOTERCP,int,neg]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+							 	fl([ID2,SC1,err,min]) .
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,neg])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+								    			fl([ID2,SC1,err,min]),
+								    			threat([VOTERCP,int,neg]), 
+								    			nmit([VOTERCP,int,neg]) .							 	
+
+potThreat([VOTERCP,int,neg]) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+							 	fl([ID2,SC2,err,min]) .
+
+
+conflSaf2Sec(VOTERCP, potThreat([VOTERCP,int,neg])) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP),
+								    			fl([ID2,SC2,err,min]),
+								    			threat([VOTERCP,int,neg]), 
+								    			nmit([VOTERCP,int,neg]) .
+
+% Testing
+%% Safety to Security
+%%% ./dlv examples/battery/demo/architecture-battery-not-ctl-saf-1.dlv safety/safety.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=nctl -filter=ctl -filter=conflSaf2Sec
+
+%% Security to Safety
+%%% ./dlv examples/battery/demo/architecture-battery-not-ctl-sec-1.dlv safety/safety.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=conflSec2Saf -filter=nctl
+
+%% Safety to Security
+%%% ./dlv examples/battery/demo/architecture-battery-not-ctl-saf-2.dlv safety/safety.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=conflSec2Saf -filter=nctl -filter=ctl
+
+
+

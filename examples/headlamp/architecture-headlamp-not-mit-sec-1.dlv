@@ -1,0 +1,284 @@
+%%% ./dlv examples/headlamp/demo/architecture-headlamp-not-mit-sec-1.dlv  security/security.dlv utils/utils.dlv -nofinitecheck -filter=firewall -filter=nmit -filter=secMonCP -filter=secMonCH -filter=mitby
+
+% === Architecture ===
+% Components
+%% cell -> Cellular
+%% bt -> Bluetooth
+%% navig -> Navigation ECU
+%% gw -> Gateway ECU
+%% obdConn -> OBd-II connector
+%% cam -> Camera ECU
+%% bodyCtrl -> Body Control ECU
+%% pwrSwchAct -> Power Switch Actuator 
+%% hdLmpSwch -> Headlamp Switch
+%% hdLmpSystem -> Headlamp System
+cp(cell). 
+cp(bt).
+cp(navig).
+cp(gw). 
+cp(obdConn).
+cp(cam).
+cp(bodyCtrl).
+cp(pwrSwchAct).
+cp(hdlmpSwch).
+cp(hdlmpSystem).
+
+
+% Subcomponents
+%% hdLmpSwch is a subcomponent of hdlmpSystem
+subcp(hdlmpSwch, hdlmpSystem).
+%% bodyCtrl is a subcomponent of hdlmpSystem
+subcp(bodyCtrl, hdlmpSystem).
+%% cam is a subcomponent of hdlmpSystem
+subcp(cam, hdlmpSystem).
+%% pwrSwchAct is a subcomponent of hdlmpSystem
+subcp(pwrSwchAct, hdlmpSystem).
+
+
+% Logical Channels
+%% cell -> navig 
+ch(cellNavig, cell, navig).
+%% bt -> navig
+ch(btNavig,bt,navig).
+%% navig -> gw
+ch(navigGW,navig,gw).
+%% gw -> pwrSwchAct
+ch(gwPwrSwch,gw,pwrSwchAct).
+%% cam, pwrSwchAct (deleted due to TMR)
+ch(camPwrSwch,cam,pwrSwchAct).
+
+ch(obdGw,obdConn,gw).
+
+ch(bodyCPwrSwch, bodyCtrl, pwrSwchAct).
+
+ch(gwbodyCtrl, gw, bodyCtrl).
+
+ch(hdSwchbdCtrl,hdlmpSwch,bodyCtrl) .
+
+ch(gwhlSys,gw,hdlmpSystem).
+% physical components
+  % - ECUs
+  % - comm mediums
+can(can1).
+dep(navigGW,can1).
+can(can2).
+dep(gwPwrSwch,can2).
+%dep(bodyCPwrSwch, can2).
+dep(gwbodyCtrl, can2).
+can(can3).
+dep(obdGw,can3).
+
+dep(gwhlSys,can2).
+
+
+%% TODO: Create an ECU for gw,cam and bodyCtrl as, e.g., ecuNavig
+ecu(ecuNavig).
+ecu(ecuGW).
+ecu(ecuBC).
+ecu(ecuCAM).
+dep(navig,ecuNavig).
+dep(gw,ecuGW).
+%dep(cam,ecuCAM).
+%dep(bodyCtrl,ecuBC).
+
+% TODO: Create a dlv file for general rules for the architecture, e.g, the following rule
+%sw(CP) :- cp(CP), dep(CP,_).
+
+wireless(wl).
+dep(cellNavig,wl).
+dep(btNavig,wl).
+
+% CP is public if it sends data via wireless connection
+%public(CP) :- cp(CP), wireless(WL), dep(CH, WL), ch(CH, CP, _) .
+% CP is public if it reads data via wireless connection
+%public(CP) :- cp(CP), wireless(WL), dep(CH, WL), ch(CH, _, CP) .
+
+% TODO: Create rule: If it is a hw component the component cannot be deployed
+hw(pwrSwchAct).
+hw(cam) .
+%not dep(CP, ECU) :- hw(CP) .
+
+%%%% Hazards %%%%
+%hz([hdlmpSystem,err,cat]).
+%%hz([hdLmpSwch,err,cat]).
+%hz([bodyCtrl,err,cat]).
+%hz([cam,err,cat]).
+%% Question: HZ on can2 or can1?
+%hz([can2,err,cat]).
+
+%%%% Identified hazards %%%%
+hz([hzHLSys,hdlmpSystem,cat]).
+fl([flBdCl,bodyCtrl,err,cat]) .
+%fl([flCam,cam,err,cat]) .
+fl([flcan,can2,err,cat]).
+fl([flhls,hdlmpSystem,loss,cat]) .
+
+fl2Hz(flhls,hzHLSys) .
+fl2Hz(flBdCl,hzHLSys).
+%fl2Hz(flCam,hzHLSys) .
+fl2Hz(flCan,hzHLSys) .
+
+
+%%subHz([hdLmpSwch,err,cat], [hdlmpSystem,err,cat]).
+%subHz([bodyCtrl,err,cat], [hdlmpSystem,err,cat]).
+%subHz([cam,err,cat], [hdlmpSystem,err,cat]).
+%subHz([can2,err,cat], [hdlmpSystem,err,cat]).
+
+tol([flcan,can2,err,cat]).
+tolby([flcan,can2,err,cat],replacement).
+%ctl([can2,err,cat]).
+%ctlby([can2,err,cat],offline).
+
+
+%{tolby([flcan,can2,err,cat],replacement), 
+%safMon(nuSafMon,bodyCtrl,[allInputs],[allOutputs],nuSC,[numin],[numout],nusafmon), 
+%tmr(nuTMR,cam,nucp2,nucp3,nuchm1,nuchm2,nuchm3,nuvtcp,nucho,nucpo), ctl([hzHLSys,hdlmpSystem,cat]), 
+%tolby([flBdCl,bodyCtrl,err,cat],nuSafMon), 
+%tolby([flCam,cam,err,cat],nuTMR)}
+%%% PATTERN - Safety Monitor
+cp(safMon).
+subcp(safMon,bodyCtrl).
+ch(min1,hdlmpSwch,safMon).
+ch(min2,gw,safMon).
+dep(min2,can2).
+ch(mout,bodyCtrl,safMon).
+ch(fs,safMon,bodyCtrl).
+safMon(safMon,bodyCtrl,[hdSwchbdCtrl,gwbodyCtrl],[bodyCPwrSwch],fs,[min1,min2],[mout]).
+
+
+%%% PATTERN: TMR
+%cp(redCam1).
+%hw(redCam1).
+%cp(redCam2).
+%hw(redCam2).
+%cp(voterTMR).
+%ch(camVT,cam,voterTMR).
+%ch(rdC1VT,redCam1,voterTMR).
+%ch(rdC2VT,redCam2,voterTMR).
+%ch(vtout,voterTMR,pwrSwchAct).
+%tmr(tmr,cam,redCam1,redCam2,camVT,rdC1VT,rdC2VT,voterTMR,vtout,pwrSwchAct).
+
+
+%%% Pattern - Watchdog
+cp(watchdog).
+ch(lvwd,hdlmpSystem,watchdog).
+ch(sswd,watchdog,hdlmpSystem).
+watchDog(watchdog,hdlmpSystem,sswd,lvwd).
+
+%ch(camPwrSwch,cam,pwrSwchAct).
+
+
+%%%% SECURITY %%%
+%% public(CP), where CP is public component that may be accessible by an attacker
+public(cell).
+public(bt).
+public(obdConn).
+
+% input validation attack targeting bodyCtrl? software updates? Can a software update lead to tampering on body ctrl?
+%potThreat([bodyCtrl,tampering,sev]).
+
+%TODO: Add security-monitor as pattern
+%TODO: secMon as function to monitor bodyCtrl to check against security policies
+%TODO: Create two types of secMon (monitor channel & monitor component)
+ 
+%cp(fw).
+%ch(navigFW,navig,fw).
+%ch(fwGW,fw,gw).
+%dep(navigFW,can1).
+%dep(fwGW,can1).
+%firewall(firewall, can1,gw, navigFW, fwGW, fw).
+%explore(1,firewall) .
+%explore(1,secMonCH) .
+%explore(1,secMonCP). 
+% :- nmit([Z,V,P]).
+
+%secMonCP(secmonitor,bodyCtrl,[gwbodyCtrl],[bodyCPwrSwch],dec,[min1,min2],[mout1,mout2],semo).
+%secMonCH(secmonch,obdGw,dec,min,mout,mch).
+
+%% Information flow
+%if(if1,[cellNavig,navigGW,gwPwrSwch]).
+%before(cellNavig,navigGW,if1).
+%before(navigGW,gwPwrSwch,if1).
+
+if(if2,[cellNavig,navigGW,gwbodyCtrl]).
+before(cellNavig,navigGW,if2).
+before(navigGW,gwbodyCtrl,if2).
+
+
+%if(if5,[obdGw,gwPwrSwch]).  
+%before(obdGw,gwPwrSwch,if5).
+
+%if(if2,[cellNavig,navigGW,gwbodyCtrl,min1,mout,bodyCPwrSwch]).
+%before(cellNavig,navigGW,if2).
+%before(navigGW,gwbodyCtrl,if2).
+%before(gwbodyCtrl,min1,if2).
+%before(min1,mout,if2).
+%before(mout,bodyCPwrSwch,if2).
+
+%if(if3,[btNavig,navigGW,gwPwrSwch]).  
+%before(btNavig,navigGW,if3).
+%before(navigGW,gwPwrSwch,if3).
+
+if(if4,[btNavig,navigGW,gwbodyCtrl]).  
+before(btNavig,navigGW,if4).
+before(navigGW,gwbodyCtrl,if4).
+
+
+%if(if4,[btNavig,navigGW,gwbodyCtrl,min1,mout,bodyCPwrSwch]).  
+%before(btNavig,navigGW,if4).
+%before(navigGW,gwbodyCtrl,if4).
+%before(gwbodyCtrl,min1,if4).
+%before(min1,mout,if4).
+%before(mout,bodyCPwrSwch,if4).
+
+%if(if5,[obdGw,gwPwrSwch]).  
+%before(obdGw,gwPwrSwch,if5).
+
+if(if6,[obdGw,gwbodyCtrl]).  
+before(obdGw,gwbodyCtrl,if6).
+
+%if(if6,[obdGw,gwbodyCtrl,min1,mout,bodyCPwrSwch]).    
+%before(obdGw,gwbodyCtrl,if6).
+%before(gwbodyCtrl,min1,if6).
+%before(min1,mout,if6).
+%before(mout,bodyCPwrSwch,if6) .
+
+if(if7,[hdSwchbdCtrl, bodyCPwrSwch]).
+before(hdSwchbdCtrl,bodyCPwrSwch,if7).
+
+if(if8,[camPwrSwch]).
+
+%if(if9,[cellNavig,navigGW,gwhlSys,lvwd,sswd]).
+%before(cellNavig,navigGW,if9).
+%before(navigGW,gwhlSys,if9).
+%before(gwhlSys,lvwd,if9).
+%before(lvwd,sswd,if9).
+
+%if(if10,[btNavig,navigGW,gwhlSys,lvwd,sswd]).
+%before(btNavig,navigGW,if10).
+%before(navigGW,gwhlSys,if10).
+%before(gwhlSys,lvwd,if10).
+%before(lvwd,sswd,if10).
+
+%if(if11,[obdGw,gwhlSys,lvwd,sswd]).
+%before(obdGw,gwhlSys,if11).
+%before(gwhlSys,lvwd,if11).
+%before(lvwd,sswd,if11).
+
+if(if9,[cellNavig,navigGW,gwhlSys]).
+before(cellNavig,navigGW,if9).
+before(navigGW,gwhlSys,if9).
+
+if(if10,[btNavig,navigGW,gwhlSys]).
+before(btNavig,navigGW,if10).
+before(navigGW,gwhlSys,if10).
+
+
+if(if11,[obdGw,gwhlSys]).
+before(obdGw,gwhlSys,if11).
+
+%% Uncomment for exploration
+explore(1,firewall) .
+explore(1,secMonCH) .
+explore(1,secMonCP). 
+:- nmit([Z,V,P,T]) .
