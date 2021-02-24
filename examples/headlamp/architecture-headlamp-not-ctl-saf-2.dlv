@@ -1,4 +1,4 @@
-% ./dlv examples/headlamp/demo/architecture-headlamp-not-ctl-saf-2.dlv safety/safety.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSaf2Sec -filter=ntol -filter=fl -filter=conflSec2Saf -filter=fl2Hz
+% ./dlv examples/headlamp/architecture-headlamp-not-ctl-saf-2.dlv safety/safety.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSaf2Sec -filter=ntol -filter=fl -filter=conflSec2Saf -filter=fl2Hz
 % === Architecture ===
 % Components
 %% cell -> Cellular
@@ -73,9 +73,6 @@ can(can3).
 dep(obdGw,can3).
 
 
-
-
-%% TODO: Create an ECU for gw,cam and bodyCtrl as, e.g., ecuNavig
 ecu(ecuNavig).
 ecu(ecuGW).
 ecu(ecuBC).
@@ -85,8 +82,6 @@ dep(gw,ecuGW).
 %dep(cam,ecuCAM).
 %dep(bodyCtrl,ecuBC).
 
-% TODO: Create a dlv file for general rules for the architecture, e.g, the following rule
-%sw(CP) :- cp(CP), dep(CP,_).
 
 wireless(wl).
 dep(cellNavig,wl).

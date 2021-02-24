@@ -1,4 +1,4 @@
-%%% ./dlv examples/headlamp/demo/architecture-headlamp-not-mit-sec-2.dlv  security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSec2Saf -filter=threat -filter=firewall
+%%% ./dlv examples/headlamp/architecture-headlamp-not-mit-sec-2.dlv  security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSec2Saf -filter=threat -filter=firewall
 % === Architecture ===
 % Components
 %% cell -> Cellular
@@ -41,10 +41,7 @@ ch(cellNavig, cell, navig).
 ch(btNavig,bt,navig).
 %% navig -> gw
 ch(navigGW,navig,gw).
-%% gw -> pwrSwchAct
-%% deleted due to firewall
-%ch(gwPwrSwch,gw,pwrSwchAct).
-%% cam, pwrSwchAct (deleted due to TMR)
+
 ch(camPwrSwch,cam,pwrSwchAct).
 
 ch(obdGw,obdConn,gw).
@@ -71,9 +68,6 @@ can(can3).
 dep(obdGw,can3).
 
 
-
-
-%% TODO: Create an ECU for gw,cam and bodyCtrl as, e.g., ecuNavig
 ecu(ecuNavig).
 ecu(ecuGW).
 ecu(ecuBC).
@@ -84,30 +78,17 @@ dep(gw,ecuGW).
 %dep(bodyCtrl,ecuBC).
 
 dep(gwhlSys,can2).
-% TODO: Create a dlv file for general rules for the architecture, e.g, the following rule
-%sw(CP) :- cp(CP), dep(CP,_).
+
 
 wireless(wl).
 dep(cellNavig,wl).
 dep(btNavig,wl).
 
-% CP is public if it sends data via wireless connection
-%public(CP) :- cp(CP), wireless(WL), dep(CH, WL), ch(CH, CP, _) .
-% CP is public if it reads data via wireless connection
-%public(CP) :- cp(CP), wireless(WL), dep(CH, WL), ch(CH, _, CP) .
 
-% TODO: Create rule: If it is a hw component the component cannot be deployed
+
 hw(pwrSwchAct).
 hw(cam) .
-%not dep(CP, ECU) :- hw(CP) .
 
-%%%% Hazards %%%%
-%hz([hdlmpSystem,err,cat]).
-%%hz([hdLmpSwch,err,cat]).
-%hz([bodyCtrl,err,cat]).
-%hz([cam,err,cat]).
-%% Question: HZ on can2 or can1?
-%hz([can2,err,cat]).
 
 %%%% Identified hazards %%%%
 hz([hzHLSys,hdlmpSystem,cat]).
@@ -121,22 +102,13 @@ fl2Hz(flBdCl,hzHLSys).
 %fl2Hz(flCam,hzHLSys) .
 fl2Hz(flCan,hzHLSys) .
 
-%%subHz([hdLmpSwch,err,cat], [hdlmpSystem,err,cat]).
-%subHz([bodyCtrl,err,cat], [hdlmpSystem,err,cat]).
-%subHz([cam,err,cat], [hdlmpSystem,err,cat]).
-%subHz([can2,err,cat], [hdlmpSystem,err,cat]).
+
 
 tol([flcan,can2,err,cat]).
 tolby([flcan,can2,err,cat],replacement).
 %ctl([can2,err,cat]).
 %ctlby([can2,err,cat],offline).
 
-
-%{tolby([flcan,can2,err,cat],replacement), 
-%safMon(nuSafMon,bodyCtrl,[allInputs],[allOutputs],nuSC,[numin],[numout],nusafmon), 
-%tmr(nuTMR,cam,nucp2,nucp3,nuchm1,nuchm2,nuchm3,nuvtcp,nucho,nucpo), ctl([hzHLSys,hdlmpSystem,cat]), 
-%tolby([flBdCl,bodyCtrl,err,cat],nuSafMon), 
-%tolby([flCam,cam,err,cat],nuTMR)}
 %%% PATTERN - Safety Monitor
 cp(safMon).
 subcp(safMon,bodyCtrl).
@@ -180,21 +152,7 @@ firewall(firewall,can2,gw,[gwfw],[fwout1,fwout2]) .
 tol([fw,fw,omission,cat]).
 tolby([fw,fw,omission,cat],offline).
 
-%dep(gwPwrSwch,can2).
-%dep(gwbodyCtrl,can2).
-
-
-% input validation attack targeting bodyCtrl? software updates? Can a software update lead to tampering on body ctrl?
-%potThreat([bodyCtrl,tampering,sev]).
-
-%secMonCP(secmonitor,bodyCtrl,[gwbodyCtrl],[bodyCPwrSwch],dec,[min1,min2],[mout1,mout2],semo).
-%secMonCH(secmonch,obdGw,dec,min,mout,mch).
-
 %% Information flow
-%if(if1,[cellNavig,navigGW,gwfw,fwout2]).
-%before(cellNavig,navigGW,if1).
-%before(navigGW,gwfw,if1).
-%before(gwfw,fwout2,if1).
 
 
 if(if2,[cellNavig,navigGW,gwfw,fwout1,min1,mout,bodyCPwrSwch]).
@@ -205,12 +163,6 @@ before(fwout1,min1,if2).
 before(min1,mout,if2).
 before(mout,bodyCPwrSwch,if2).
 
-%if(if3,[btNavig,navigGW,gwfw,fwout2]).  
-%before(btNavig,navigGW,if3).
-%before(navigGW,gwfw,if3).
-%before(gwfw,fwout2,if3).
-
-
 if(if4,[btNavig,navigGW,gwfw,fwout1,min1,mout,bodyCPwrSwch]).
 before(btNavig,navigGW,if4).
 before(navigGW,gwfw,if4).
@@ -218,11 +170,6 @@ before(gwfw,fwout1,if4).
 before(fwout1,min1,if4).
 before(min1,mout,if4).
 before(mout,bodyCPwrSwch,if4).
-
-%if(if5,[obdGw,gwfw,fwout2]).  
-%before(obdGw,gwfw,if5).
-%before(gwfw,fwout2,if5).
-
 
 if(if6,[obdGw,navigGW,gwfw,fwout1,min1,mout,bodyCPwrSwch]).
 before(obdGw,gwfw,if6).

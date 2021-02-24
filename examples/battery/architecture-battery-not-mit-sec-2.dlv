@@ -1,5 +1,4 @@
-% run dlv paper-example.dlv
-%% ./dlv examples/battery/architecture-battery-not-ctl-sec-2.dlv  safety/safety.dlv security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=threat -filter=firewall -filter=mitby -filter=nmit -filter=fl2Hz -filter=fl -filter=conflSec2Saf -filter=ntol -filter=potThreat
+%% ./dlv examples/battery/architecture-battery-not-mit-sec-2.dlv  security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSaf2Sec -filter=threat
 
 % === Architecture ===
 % Components
@@ -43,17 +42,6 @@ fl2Hz(flCan,hzBat) .
 tol([flCan,can,err,cat]).
 tolby([flCan,can,err,cat],replacement).
 
-%max_prob(cat, 1.2) .
-
-%subHz([ci,err,cat],[bat,err,cat]).
-%subHz([can,err,cat],[ci,err,cat]).
-%%subHz(["hz",bms],["hz",can]).
-%subHz([bms,err,cat],[ci,err,cat]).
-%%subHz([fw,omission,cat],[ci,err,cat]).
-
-%ctl([can,err,cat]).
-%ctlby([can,err,cat],offline).
-
 %%% PATTERN - Safety Monitor
 cp(safMon).
 subcp(safMon,bm).
@@ -83,12 +71,6 @@ firewall(firewall,can,ci,[ch20],[ch21]) .
 public(ci).
 
 %% Information flow
-%% After firewall.
-%% missing new channels for the firewall
-%if(if2,[ch1,ch20,ch21,ch3]).
-%before(ch1,ch20,if2).
-%before(ch20,ch21,if2).
-%before(ch21,ch3,if2).
 
 if(if1,[ch1,min,mout,fs,ch20,moon1,ch21,moon2,vtoutdm]).
 before(ch1,min,if1).

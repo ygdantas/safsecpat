@@ -1,108 +1,14 @@
-% run dlv paper-example.dlv
+% run dlv safety.dlv
 % === Safety ===
-% Hazards
-% These are derived from an argumentation.
-% For now these are manually inserted
-
-% CP
-% TODO:
-%  * SIL level is derived from the haz.
-
-% Software and Hardware
-% Hardware are either
-%   * can(ID) -> denoting a can bus
-%   * ecu(ID) -> denoting an ECU where SW is deployed
-%   * hw(ID) -> generic (unspecified hw), e.g., sensors.
-%   IDEA (if usefule): we could consider the hardware topology
-%     e.g., ecu1 <-- can -> ecu2, 
-%%    where ecu1 and ecu2 communicate using can
-
-% Software is any functional component deployed in an ECU.
-% (Used for some safety patterns, e.g., N-Programming)
 
 
-
-
-%position(CH,IF,POS) :- if(IF,PATH), ch(CH,fw,voterdm),getnth(PATH,POS,CH).
-
-
-%before(CH1,CH2,IF) :-
-%     ch(CH1,_,_),
-%     ch(CH2,_,_),
-%     if(IF,PATH),
-%     getnth(PATH, POS1, CH1),
-%     getnth(PATH, POS2, CH2),
-%     POS1 < POS2 .
-
-
-% ASIL
-%% ISO_DIS_26262-5(E)-Character_PDF_document-HWPATTERNS
-%% Annex G: Table G.1 — Random hardware failure target values
-%% asil(HZ_ID, ASIL Level, Random hardware failure target value) 
-%asil(CP, d) .
-%failProb(d, 8) .  
-%asil(CP, c) .
-%failProb(c, 7) .  
-%asil(CP, b) .
-%failProb(b, 7) .  
-%asil(CP, a) .
-%failProb(a, 7) .  
-%asil([CP,TP,cat], d, 8) :- hz([CP,TP,cat]) .
-%asil([CP,TP,haz], c, 7) :- hz([CP,TP,haz]) .
-%asil([CP,TP,maj], b, 7) :- hz([CP,TP,maj]) .
-%asil([CP,TP,min], a, 7) :- hz([CP,TP,min]) .
-% Hazards
-% hz(id,cp,type,sev), where type can be:
-%    * err -> for erroneous
-%    * loss -> for loss of function
-%% and sev (for severity) can be 
-%%   * cat -> catastrophic
-%%   * haz -> hazardeous
-%%   * maj -> major
-%%   * min -> minimal
-
-%grSev(cat,haz).
-%grSev(haz,maj).
-%grSev(maj,min).
-% Transitive relation
-%grSev(X,Y) :- grSev(X,Z),grSev(Z,Y).
-
-%%%% Table Hazards x Severity
-%%% Pat terms: safMon,1002,Watchdog,
-%% TODO:
-%applicablePat(CP,safMon) :- 
-%  hz(ID,CP,err,maj),
-%  hz(ID,CP,loss,min).
-
-% TODO: Put others.
-
-% basic hazards, i.e., the leaves of the HARA
-% TODO to hz: 
-% * rename / compute cut-sets
-%% * Add severity level
-%% * Add exposure, (likelihood)?
-
-%% Uncomment for exploration
-% explore(1,safMon) .
-% explore(1,hdr) .
-% explore(1,tmr) .
-
-
-%% Hazard <- failure
-%hz([IDH,CP,SEV],ID) :- fl([ID,CP,TYPE,SEV]) .
 
 ctl([IDH,CP1,SEV1]) :-  fl([ID,CP,TYPE,SEV]),
 						hz([IDH,CP1,SEV1]),
 						fl2Hz(ID,IDH), 
 						not ntol([ID,CP,TYPE,SEV]) .
 
-%nAllFlTol([IDH,CP1,SEV1]) :- hz([IDH,CP1,SEV1]),
-%						    fl2Hz(ID,IDH),
-%						    ntol([ID,CP,TYPE,SEV]).					
 
-%nctl([IDH,CP1,SEV1]) :- hz([IDH,CP1,SEV1]), 
-%						fl2Hz(ID,IDH),
-%						not ctl([IDH,CP1,SEV1])
 
 nctl([IDH,CP1,SEV1]) :-  fl([ID,CP,TYPE,SEV]),
 						 hz([IDH,CP1,SEV1]),
@@ -117,112 +23,10 @@ ntol([ID,CP,TYPE,SEV]) :- fl([ID,CP,TYPE,SEV]),
 	not tol ([ID,CP,TYPE,SEV]) .
 
 
-%% new
-%ntol([ID,CP,TYPE,SEV]) :- basic ([ID,CP,TYPE,SEV]), 
-%	not tol ([ID,CP,TYPE,SEV]) .
-%% new
-%basic([ID,CP,TYPE,SEV]) :- fl([ID,CP,TYPE,SEV]),
-%			not has_subFl([CP,TYPE,SEV]).
-%% new
-%derived([ID,CP,TYPE,SEV]) :- fl([ID,CP,TYPE,SEV]),
-%			not basic([ID,CP,TYPE,SEV]) .
-%% new
-%ntol([ID,CP,TYPE,SEV]) :- fl([ID,CP,TYPE,SEV]),
-%			 derived([ID,CP,TYPE,SEV]),
-%			 hasNTOLSubFl([ID,CP,TYPE,SEV]).
-%% new
-%tol([ID,CP,TYPE,SEV]) :- fl([ID,CP,TYPE,SEV]),
-%			derived([ID,CP,TYPE,SEV]),
-%			not hasNTOLSubFl([ID,CP,TYPE,SEV]) .
-
-%% new
-%hasNTOLSubFl([ID,CP,TYPE,SEV]) :- fl([ID,CP,TYPE,SEV]),
- % 								  subFl([IDD,SCP,STYPE,SSEV],[ID,CP,TYPE,SEV]),
-  % 								  ntol([IDD,SCP, STYPE, SSEV]).
-
-	
-%nctl([CP,TYPE,SEV]) :- basic ([CP,TYPE,SEV]), 
-%	not ctl ([CP,TYPE,SEV],_).
-%	safPat(CP) .
-% not safPat(IDPAT).
-
-%nctl(H,CP,TYPE,SEV) :- basic(H,CP,TYPE,SEV),
-%           not ctl(H,CP,TYPE,SEV) .
-
-%basic([CP,TYPE,SEV]) :- hz([CP,TYPE,SEV]),
-%			not has_subHz([CP,TYPE,SEV]).
-
-
-
-
-%basic(H,CP,TYPE,SEV) :- hz(H,CP,TYPE,SEV),
-%            not has_subHz(H).
-						
-%%has_subHz(H,CP,TYPE,SEV) :- subHz(SH,SCP,STYPE,SSEV,H,CP,TYPE,SEV) .
-%has_subHz([CP,TYPE,SEV]) :- subHz([SCP,STYPE,SSEV],[CP,TYPE,SEV]) .
-%% new
-%has_subFz([ID,CP,TYPE,SEV]) :- subFl([IDD,SCP,STYPE,SSEV],[ID,CP,TYPE,SEV]) .
-
-%has_subHz(H) :- subHz(SH,H) .
-
-% derived hazards, i.e., have sub-hazards
-
-
-
-%derived(H,CP,TYPE,SEV) :- hz(H,CP,TYPE,SEV),
-%              not basic(H,CP,TYPE,SEV) .              
-
-% A derived hazard is not controllable 
-% if it has a sub-hazard that is not controllable.
-
-
-
-%nctl(H,CP,TYPE,SEV) :- hz(H,CP,TYPE,SEV),
-%           derived(H,CP,TYPE,SEV),
-%           hasNCTLSubHz(H,CP,TYPE,SEV).
-
-% Otherwise it is controllable.
-
-
-%ctl([CP,TYPE,SEV],IDPAT) :- hz([CP,TYPE,SEV]),
-%					derived([CP,TYPE,SEV]),
-%					not hasNCTLSubHz([CP,TYPE,SEV]),
-%					safPat(IDPAT) .
- 
-
-%ctl(H,CP,TYPE,SEV) :- hz(H,CP,TYPE,SEV),
-%          derived(H,CP,TYPE,SEV),
-%          not hasNCTLSubHz(H,CP,TYPE,SEV) .
-
-% Exists a sub hazard that is not controllable
-
-%hasNCTLSubHz(H,CP,TYPE,SEV) :- hz(H,CP,TYPE,SEV),
-%                   subHz(SH,SCP,STYPE,SSEV,H,CP,TYPE,SEV),
-%                   subHz(SH,H),
- %                  hz(SH,SCP,STYPE,SSEV),
-	%                 not ctl(SH,SCP,STYPE,SSEV) .
- %                   nctl(SH, SCP, STYPE, SSEV).
-
-%% ========== HAZOP ===========
-%%% omission: Function not provided when expected
-%%% commission: Function provided when not expected
-%%% late: Function provided too late
-%%% early: Function provided too late
-%%% valHigh: Function provided value higher than expected
-%%% valLow: Function provided value lower than expected
-
- %% hz(["hz",CP],CP,err,SEV) :- hz(["hz",ID],CP,omission,SEV).
- %% hz(["hz",CP],CP,err,SEV) :- hz(["hz",ID],CP,comission,SEV).
- %% hz(["hz",CP],CP,err,SEV) :- hz(["hz",ID],CP,late,SEV).
- %% hz(["hz",CP],CP,err,SEV) :- hz(["hz",ID],CP,early,SEV).
- %% hz(["hz",CP],CP,err,SEV) :- hz(["hz",ID],CP,valHigh,SEV).
- %% hz(["hz",CP],CP,err,SEV) :- hz(["hz",ID],CP,valLow,SEV).
-
-%% E.g., hz(id,cp,omission).
 
 % ======== Safety patterns ========
 
-% ****** Safety Pattern: Monitor  ***********
+% ****** Safety Pattern: Monitor (Monitor Actuator) ***********
 % safMon(id,cp,ic,oc,fs,min,mout,mcp), where
 %           
 %     --ic1------>cp --oc1------> 
@@ -260,22 +64,6 @@ ch(MIN,ECP,ID) :- xsafMon(ID,CP,[IC],[OC],FS,[MIN],[MOUT]),
 									 ch(IC,ECP,CP), 
 									 explore(N,safMon).
 
-%ch(MOUT,CP,MCP) :- safMon(ID,CP,IC,OC,FC,MIN,MOUT,MCP), explore(N,safMon).
-
-%cp(MCP) :- safMon(ID,CP,[IC],[OC],SS,MIN,MOUT,MCP), 
-%           explore(N,safMon).
-%subcp(MCP,CP1) :- safMon(ID,CP,[IC],[OC],SS,MIN,MOUT,MCP),
-%                  subcp(CP,CP1), explore(N,safMon). 
-
-%ch(SS,MCP,CP) :- safMon(ID,CP,[IC],[OC],SS,MIN,MOUT,MCP), 
-%				 explore(N,safMon).
-
-%ch(MIN,ECP,MCP) :- safMon(ID,CP,[IC],[OC],FC,MIN,MOUT,MCP),
-%                   ch(IC,ECP,CP), 
-%                   explore(N,safMon).
-
-%ch(MOUT,CP,MCP) :- safMon(ID,CP,[IC],[OC],FC,MIN,MOUT,MCP), 
-%                   explore(N,safMon).
 
 
 % Safety argumentation with patterns.
@@ -442,16 +230,8 @@ tol([ID,CP,loss,SEV]) :- fl([ID,CP,loss,SEV]),
 		% oCh -> channel trat transmits output to out component
 		% out -> output component
 
-% Components
-%% SC1 component for input 1
-%cp(SC1) :- moon2FSPat(ID,CH1,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP).
-%% SC2 component for input 2
-%cp(SC2) :- moon2FSPat(ID,CH1,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP).
-%% Voter component
 
-%safPat(ID) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) .
 asmPAT(ID,"has been verified") :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) .
-%asmPAT(ID,"must be") :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) .
 safPat(ID) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) .
 redundancy(ID) :- hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) .
 hdr(ID,SC1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP) :- xhdr(ID,SC1,CH1,SC2,CHMOON1,CHMOON2,VOTERCP,CHOUT, OUTCP).
@@ -598,7 +378,6 @@ tol([ID,CP,omission,SEV]) :-
 		% oCh -> channel trat transmits output to out component
 		% out -> output component
 
-%moon3SFPat(nuMoon3SF,ch1,ds,sc2,sc3,chmoon1,chmoon2,chmoon1,votercp,chout, accm) .
 
 % Components
 %% SC2 component for input 2
