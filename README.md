@@ -1,12 +1,9 @@
 -----------------------------------------------------------------
 SafSecPat
 -----------------------------------------------------------------
-SafSecPat is a domain-specific language for enabling automated reasoning with safety and security patterns, as well as consequences of using such patterns.
+SafSecPat is a machinery for enabling automated reasoning with safety and security patterns, as well as consequences of using such patterns.
 
-SafSecPat has been introduced by the following article submitted to SAFECOMP 2021:
-
-Yuri Gil Dantas, and Vivek Nigam: 
-Automated Reasoning for Safety and Security Co-Engineering
+Authors: Yuri Gil Dantas, and Vivek Nigam.
 
 -----------------------------------------------------------------
 Purpose of this README file
@@ -21,21 +18,9 @@ The instructions have been tested in a Linux operating system (Ubuntu 18.04 desk
 -----------------------------------------------------------------
 Files
 -----------------------------------------------------------------
-- safety/safety.dlv: contains our safety reasoning with safety patterns 
-- security/security.dlv: contains our security reasoning with security patterns 
-- tradeoffs/tradeoffs.dlv: contains our reasoning rules on consequences of using patterns
-- utils/utils.dlv: contains some utils rules 
-- dlv: Linux version of dlv
-- examples/headlamp/ : Headlamp System (HLS) case study
-     - headlamp/architecture-headlamp-not-ctl-saf-1.dlv : contains architecture of HLS for safety exploration mode
-     - headlamp/architecture-headlamp-not-mit-sec-1.dlv : contains architecture of HLS for security exploration mode
-     - headlamp/architecture-headlamp-not-ctl-saf-2.dlv : contains architecture of HLS for co-analysis: consequences on safety
-     - headlamp/architecture-headlamp-not-mit-sec-2.dlv : contains architecture of HLS for co-analysis: consequences on security
-- examples/battery/ : Battery Management System (BMS) case study
-     - headlamp/architecture-battery-not-ctl-saf-1.dlv : contains architecture of BMS for safety exploration mode
-     - headlamp/architecture-battery-not-mit-sec-1.dlv : contains architecture of BMS for security exploration mode
-     - headlamp/architecture-battery-not-ctl-saf-2.dlv : contains architecture of BMS for co-analysis: consequences on safety
-     - headlamp/architecture-battery-not-mit-sec-2.dlv : contains architecture of BMS for co-analysis: consequences on security
+- AutoFOCUS3/model/: contains the model of the Highway Pilot system
+- AutoFOCUS3/safpat/: contains all files related to safpat, including the DSL and reasoning principles 
+- AutoFOCUS3/autofocus3-phoenix-binary: is the binary for running Pattern synthesis
 
 -----------------------------------------------------------------
 Instruction for running the HLS case study
