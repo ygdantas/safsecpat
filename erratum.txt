@@ -1,0 +1,10 @@
+There are 3 typos in the submitted paper:
+
+Page 12:
+ "sg(sg2,[hz2,never,all1fail,never])." should have been "sg(sg2,[hz2,never,most1fail,never])." instead [i.e., change "all1fail" to "most1fail"]
+
+Page 15:
+  "FAIL_SILENT=all1fail;" should have been "FAIL_SILENT=most1fail;" instead [i.e., change "all1fail" to "most1fail"]
+
+Page 15:
+  "safetyIntent(monitorActuator,[[err],b,never,all1fail,never])." should have been "safetyIntent(monitorActuator,[[err],b,never,most1fail,never])." instead [i.e., change "all1fail" to "most1fail"]
