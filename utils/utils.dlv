@@ -9,14 +9,142 @@ sw(CP) :- cp(CP),
 		  subcp(CP,CP1).
 
 
+%sw(CP1) :- cp(CP),
+%		   cp(CP1),
+%		   dep(CP,ECU),
+%		   ecu(ECU),
+%		   subcp(CP1,CP) .
+
 % Information Flow Relation:
-before(CH,CH,IF) :-
-			ch(CH,_,_),
-			if(IF,PATH),
-			#member(CH,PATH).
+before(CH,CH,IF) :- ch(CH,_,_),
+					if(IF,PATH),
+					#member(CH,PATH).
 
-before(CH1,CH2,IF) :- 
-			before(CH1,CH3,IF),
-			before(CH3,CH2,IF) .
+before(CH1,CH2,IF) :- before(CH1,CH3,IF),
+					  before(CH3,CH2,IF) .
 
+% CP3 is contained in CP1 IF 
+%% CP2 is contained in CP1, and
+%% CP3 is contained in CP2
+contd(CP3,CP1) :- contd(CP2,CP1),
+				  contd(CP3,CP2).
+
+% Mapping w.r.t. software and hardware
+sw(ID) :- pt(ID) . % partition is implementen in software
+sw(ID) :- task(ID) . % task is implementen in software 
+hw(ID) :- node(ID) . % node is implementen in hardware
+hw(ID) :- tile(ID) . % tile is implementen in hardware 
+hw(ID) :- core(ID) .
+hw(ID) :- ram(ID) .
+hw(ID) :- netCtl(ID) .
+hw(ID) :- gw(ID) .
+hw(ID) :- memCtl(ID) .
+hw(ID) :- bus(ID).
+hw(ID) :- psu(ID).
+hw(ID) :- can(ID).
+hw(ID) :- ecu(ID).
+% ....
+
+
+% Mapping from AF3 language to SafPat
+cp(ID) :- pt(ID) .
+cp(ID) :- node(ID) .
+cp(ID) :- tile(ID) .
+cp(ID) :- task(ID) .
+cp(ID) :- psu(ID).
+
+dep(CH,BUS) :- ch(CH,BUS,CP),
+			   bus(BUS).
+
+dep(CH,BUS) :- ch(CH,CP,BUS),
+			   bus(BUS).			   
+% ....
+subcp(CP1,CP2) :- contd(CP1,CP2) .
+
+
+% === Get Safety functions ===
+
+%% Safety Pattern
+getSafPatName(IDPAT,PAT) :-  xsafetyPattern(IDPAT,[PAT | ATTRSPAT]).
+
+getSafPatTarget(IDPAT,TARGET) :- xsafetyPattern(IDPAT,[PAT,[TARGET | OTHERCPS],INP,INT,EXT]).
+
+getSafPatChecker(IDPAT,CHECKER) :- xsafetyPattern(IDPAT,[PAT,[_,_,CHECKER],_,_,_]).
+
+getSafPatASIL(IDPAT,ASIL) :-  xsafetyPattern(IDPAT,[PAT | ATTRSPAT]),
+						                  safetyIntent(PAT,[FLTYPE,ASIL,FOP,FSILENT,FSAFE]).
+
+getSafPatFOP(IDPAT,FOP) :-  xsafetyPattern(IDPAT,[PAT | ATTRSPAT]),
+						                safetyIntent(PAT,[FLTYPE,ASIL,FOP,FSILENT,FSAFE]).
+
+getSafPatFSilent(IDPAT,FSILENT) :-  xsafetyPattern(IDPAT,[PAT | ATTRSPAT]),
+						                        safetyIntent(PAT,[FLTYPE,ASIL,FOP,FSILENT,FSAFE]).
+
+getSafPatFSafe(IDPAT,FSAFE) :-  xsafetyPattern(IDPAT,[PAT | ATTRSPAT]),
+						                    safetyIntent(PAT,[FLTYPE,ASIL,FOP,FSILENT,FSAFE]).
+
+%% Hazard
+getHazardSev(IDHZ,SEV) :- hz(IDHZ,[CP,SEV,EXP,CTL]) .
+getHazardExp(IDHZ,EXP) :- hz(IDHZ,[CP,SEV,EXP,CTL]) .
+getHazardCtl(IDHZ,CTL) :- hz(IDHZ,[CP,SEV,EXP,CTL]) .
+getHazardASIL(IDHZ,ASIL) :- hz(IDHZ, ATTRSHZ), asil(IDHZ,ASIL).
+
+%% Fault
+getFaultCP(IDFT,CP) :- ft(IDFT,[CP | ATTRSFT]) .
+
+%% Failure
+getFailureType(IDFL,FLTYPE) :- fl(IDFL,[FLTYPE | ATTRSFL]) .
+
+%% Safety goal
+getSafGoalHZ(IDSG,IDHZ) :- sg(IDSG,[IDHZ | ATTRSSG]).
+getSafGoalFOP(IDSG,FOP) :- sg(IDSG,[IDHZ,FOP,FSILENT,FSAFE]).
+getSafGoalFSilent(IDSG,FSILENT) :- sg(IDSG,[IDHZ,FOP,FSILENT,FSAFE]).
+getSafGoalFSafe(IDSG,FSAFE) :- sg(IDSG,[IDHZ,FOP,FSILENT,FSAFE]).
+
+%% Safety intent
+getSafIntentFailureType(PAT,PATTYPE) :- safetyIntent(PAT,[PATTYPE,PATASIL,PATFOP,PATFSILENT,PATFSAFE]).
+getSafIntentASIL(PAT,PATASIL) :- safetyIntent(PAT,[PATTYPE,PATASIL,PATFOP,PATFSILENT,PATFSAFE]).
+getSafIntentFOP(PAT,PATFOP) :- safetyIntent(PAT,[PATTYPE,PATASIL,PATFOP,PATFSILENT,PATFSAFE]).
+getSafIntentFSilent(PAT,PATFSILENT) :- safetyIntent(PAT,[PATTYPE,PATASIL,PATFOP,PATFSILENT,PATFSAFE]).
+getSafIntentFSafe(PAT,PATFSAFE) :- safetyIntent(PAT,[PATTYPE,PATASIL,PATFOP,PATFSILENT,PATFSAFE]).
+
+
+
+% ======= Get Security functions =======
+getPotentialThreatTarget(IDPT,TARGET) :- pThreat(IDPT,[TARGET | ATTRSPT]) .
+getPotentialThreatHWTarget(IDPT,HWTARGET) :- pThreat(IDPT,[TARGET, HWTARGET,_,_]) .
+getPotentialThreatType(IDPT,TYPE) :- pThreat(IDPT,[_,_,TYPE,_]) .
+getPotentialThreatSeverity(IDPT,SEV) :- pThreat(IDPT,[_,_,_,SEV]) .
+
+getThreatTarget(IDPT,TARGET) :- threat(IDPT,[TARGET,_,_,_]) .
+getThreatHWTarget(IDPT,HWTARGET) :- threat(IDPT,[TARGET,HWTARGET,_,_]) .
+getThreatPath(IDPT,PATH) :- threat(IDPT,[_,_,_,_]), auxThreatPath(IDPT,PATH).
+getThreatType(IDPT,TYPE) :- threat(IDPT,[_,_,TYPE,_]) .
+getThreatSeverity(IDPT,SEV) :- threat(IDPT,[_,_,_,SEV]) .
+
+auxThreatPath([ID,PATH],PATH) :- threat([ID,PATH],[_,_,_,_]).
+
+getSecPatName(IDPAT,PAT) :-  xsecurityPattern(IDPAT,[PAT,_,_,_,_]).
+getSecPatTarget(IDPAT,TARGET) :-  xsecurityPattern(IDPAT,[PAT,[TARGET | OTHERCPS],_,_,_]).
+getSecIntentThreatType(PAT,TYPE) :- xsecurityIntent(PAT,[TYPE | ATTRSINTENT]) .
+
+getSecPatName(IDPAT,PAT) :-  securityPattern(IDPAT,[PAT,_,_,_,_]).
+getSecPatTarget(IDPAT,TARGET) :-  securityPattern(IDPAT,[PAT,[TARGET | OTHERCPS],_,_,_]).
+getSecIntentThreatType(PAT,TYPE) :- securityIntent(PAT,[TYPE | ATTRSINTENT]) .
+
+getFirewallCP(IDPAT,CHECKER)  :- xsecurityPattern(IDPAT,[firewall,[_,_,CHECKER],_,_,_]).
+
+getSecMonCP(IDPAT,CHECKER)  :- xsecurityPattern(IDPAT,[securityMonitorApp,[_,CHECKER],_,_,_]).
+
+createID(X,Y,[X,Y]) :- xsecurityPattern(X,[Y,[_,_,CHECKER],_,_,_]), Y == firewall .
+
+createID(X,Y,[X,Y]) :- xsecurityPattern(X,[Y,[_,CHECKER],_,_,_]), Y == securityMonitorApp .
+
+% ======= Safety to Security Mapping =======
+severityMap(s3,sev).
+severityMap(s2,maj).
+severityMap(s1,mod).
+
+typeMap(err,int).
+typeMap(loss,ava).
 

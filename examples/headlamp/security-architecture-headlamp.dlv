@@ -1,0 +1,129 @@
+% Commands for pattern commendation:
+%% ./dlv examples/headlamp/security-architecture-headlamp.dlv utils/utils.dlv security/security.dlv -nofinitecheck -filter=securityPattern -filter=mitby
+% Command for safety consequences:
+%% ./dlv examples/headlamp/security-architecture-headlamp.dlv utils/utils.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=ft -filter=fl -filter=ft2fl
+
+% === Logical Architecture ===
+cp(cam).  % cam (Camera)
+cp(bdCtl). % bdCtl (Body Control)
+cp(ps). % ps (Power Switch)
+cp(hlSwt). % hlSwt (Headlamp Switch)
+cp(hls). % hls (Headlamp System)
+cp(gw). % gw (Gateway)
+cp(navig). % navig (Navigation)
+cp(obdC). % obdC (OBd-II connector) % TBD: Is this a component?
+cp(cell). % cell (Cellular) % TBD: Is this a component?
+cp(bt).  % bt (Bluetooth) % TBD: Is this a component?
+
+subcp(cam,hls). % cam is a subcomponent of hls
+subcp(bdCtl,hls). % bdCtl is a subcomponent of hls
+subcp(ps,hls). % ps is a subcomponent of hls
+subcp(hlSwt,hls). %hlSwt is a subcomponent of hls
+
+ch(cmps,cam,ps). % channel from cam to ps
+ch(hsbd,hlSwt,bdCtl). % channel from hlSwt to bdCtl 
+ch(bcps,bdCtl,ps). % channel from bdCtl to ps
+ch(gwbc,gw,bdCtl). % channel from gw to bdCtl
+ch(navgw,navig,gw). % channel from navig to gw 
+ch(obdgw,obdC,gw). % channel from obdC to gw
+ch(celnav,cell,navig). % channel from cell to navig
+ch(btnav,bt,navig). % channel from bt to navig
+
+if(if1,[cmps]). 
+if(if2,[hsbd,bcps]).
+before(hsbd,bcps,if1).
+if(if3,[obdgw,gwbc,bcps]).
+before(obdgw,gwbc,if3).
+before(gwbc,bcps,if3). 
+if(if4,[celnav,navgw,gwbc,bcps]).
+before(celnav,navgw,if4).
+before(navgw,gwbc,if4).
+before(gwbc,bcps,if4).
+if(if5,[btnav,navgw,gwbc,bcps]).
+before(btnav,navgw,if5).
+before(navgw,gwbc,if5).
+before(gwbc,bcps,if5).
+
+%celnav,navgw,gwbc,bcps
+% === Platform Architecture ===
+ecu(ecu1). 
+ecu(ecu2). 
+ecu(ecu3). 
+ecu(ecu4).
+can(can1). 
+can(can2). 
+can(can3). 
+switch(swt). 
+actuator(act).
+interface(int1). 
+interface(int2). 
+interface(int3).
+
+% === Deployment of Logical to Platform Architecture ===
+dep(cam,ecu1). 
+dep(bdCtl,ecu2). 
+dep(gw,ecu3). 
+dep(navig,ecu4).
+%dep(cell,int1).
+dep(cell,int2). % TBD: What is deployed into interface? The channel or the component?
+%dep(bt,int2).
+dep(bt,int3). % TBD: What is deployed into interface? The channel or the component? 
+dep(obdC,int1).
+
+wireless(wl).
+dep(celnav,wl).
+dep(btnav,wl).
+
+dep(navgw,can1). %TODO: dep(navgw,[can1]).
+dep(gwbc,can2). 
+dep(bcps,can2). 
+dep(obdgw,can3).
+
+
+
+
+% ===  Safety analysis === 
+hz(hz1,[hls,s3,e4,c3]). % ASIL D
+sg(sg1,[hz1,all1fail,never,all1fail]).
+ft(idft1,[bdCtl]).
+fl(idfl1,[err]).
+ft2fl(idft1,idfl1).
+
+ft(idft2,[bcps]).
+fl(idfl2,[loss]).
+ft2fl(idft2,idfl2).
+
+mcs(idmcs1,[idfl1]).
+mcs(idmcs2,[idfl2]).
+lmcs2hz([idmcs1,idmcs2],hz1).
+lmcs2hz([idmcs1],hz1).
+
+%avoided(idfl2)
+
+hz(hz2,[hls,s3,e3,c2]). % ASIL B 
+sg(sg2,[hz2,never,most1fail,never]).
+ft(idft3,[cam]).
+fl(idfl3,[err]).
+ft2fl(idft3,idfl3).
+mcs(idmcs3,[idfl3]).
+lmcs2hz([idmcs3],hz2).
+
+
+%% exploreSafPat(simplexArchitecture).
+%% exploreSafPat(monitorActuator).
+%% exploreSafPat(dualSelfCheckingPairFS).
+%% exploreSafPat(heterogeneousDuplex).
+%% exploreSafPat(watchDog).
+%% exploreSafPat(homogeneousDuplex).
+
+%% :- not satisfiedSG(IDSG), sg(IDSG,_) .
+
+%%%% SECURITY %%%
+%% public(CP), where CP is public component that may be accessible by an attacker
+public(int1).
+public(int2).
+public(int3).
+exploreSecPat(firewall).
+exploreSecPat(securityMonitorApp).
+
+:- nmit(X).

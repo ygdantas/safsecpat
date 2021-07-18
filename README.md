@@ -3,7 +3,9 @@ SafSecPat
 -----------------------------------------------------------------
 SafSecPat is a machinery for enabling automated reasoning with safety and security patterns, as well as consequences of using such patterns.
 
-Authors: Yuri Gil Dantas, and Vivek Nigam.
+SafSecPat has been presented in the following article (under submission):
+
+Yuri Gil Dantas, and Vivek Nigam. Automating Safety and Security Co-Design through Semantically-Rich Architectural Patterns, TCPS 2021.
 
 -----------------------------------------------------------------
 Purpose of this README file
@@ -18,133 +20,49 @@ The instructions have been tested in a Linux operating system (Ubuntu 18.04 desk
 -----------------------------------------------------------------
 Files
 -----------------------------------------------------------------
-- AutoFOCUS3/model/: contains the model of the Highway Pilot system
-- AutoFOCUS3/safpat/: contains all files related to safpat, including the DSL and reasoning principles 
-- AutoFOCUS3/autofocus3-phoenix-binary: is the binary for running Pattern synthesis
+- safety/safety.dlv contains the safety reasoning principle rules
+- security/security.dlv contains the security reasoning principle rules
+- tradeoff/tradeoff.dlv contains the reasoning principle rules for safety and security consequences
+- utils/utils.dlv contains auxiliary functions 
+- examples/headlamp/ contains the architecture of the headlamp system
 
 -----------------------------------------------------------------
-Instruction for running the HLS case study
+Instruction for running the Headlamp system
 -----------------------------------------------------------------
 (0) Run the following command to explore which safety patterns are recommended to tolerate the identified failures
 
-./dlv examples/headlamp/architecture-headlamp-not-ctl-saf-1.dlv safety/safety.dlv utils/utils.dlv -filter=tolby -filter=ntol -filter=safMon -filter=watchDog -filter=tmr
+./dlv examples/headlamp/safety-architecture-headlamp.dlv utils/utils.dlv safety/safety.dlv -nofinitecheck -filter=safetyPattern -filter=satisfiedSG -filter=avoided
 
-The command (0) will provide 3 complete solutions that tolerate all identified failures. We present solution b) in the paper.
+The command (0) will provide 3 complete solutions that satisfied the defined safety goals tolerate all identified failures. We present the following solution in the paper:
 
-a)
-- watchDog(nuWD,hdlmpSystem,nuscwd,nulvwd)
-- tmr(nuTMR,bodyCtrl,nucp2,nucp3,nuchm1,nuchm2,nuchm3,nuvtcp,nucho,nucpo)
-- safMon(nuSafMon,bodyCtrl,[allInputs],[allOutputs],nuSC,[numin],[numout])
+{safetyPattern([nuIDSAFPAT,monitorActuator,1],[monitorActuator,[cam,[nuREDUNDANCY,1],[nuCHECKER,1]],[nuINPUTS,1],[nuINTERNAL,1],[nuOUTPUTS,1]]), safetyPattern([nuIDSAFPAT,dualSelfCheckingPairFS,1],[dualSelfCheckingPairFS,[bdCtl,[nuREDUNDANCY,1],[nuCHECKER,1]],[nuINPUTS,1],[nuINTERNAL,1],[nuOUTPUTS,1]]), avoidedby(idfl3,cam,[[nuIDSAFPAT,monitorActuator,1],b,never,most1fail,never]), avoidedby(idfl1,bdCtl,[[nuIDSAFPAT,dualSelfCheckingPairFS,1],d,all1fail,never,all2fail]), satisfiedSG(sg1), satisfiedSG(sg2)}
 
-b) 
-- watchDog(nuWD,hdlmpSystem,nuscwd,nulvwd)
-- safMon(nuSafMon,bodyCtrl,[allInputs],[allOutputs],nuSC,[numin],[numout])
+Note that we set the following constraint (in safety-architecture-headlamp.dlv) to only show solution where all failures have been avoided
 
-c) 
-- watchDog(nuWD,hdlmpSystem,nuscwd,nulvwd)
-- tmr(nuTMR,bodyCtrl,nucp2,nucp3,nuchm1,nuchm2,nuchm3,nuvtcp,nucho,nucpo)
-
-
-The above command will only show solutions (i.e., architectures) that all failures are tolerated by the suggested safety
-patterns. To also show solutions where where not all failures are tolerated, make sure the following line is commented
-out in examples/headlamp/architecture-headlamp-not-ctl-saf-1.dlv (needs manual change)
-
-:- nctl([Z,V,P]).
+:- not satisfiedSG(IDSG), sg(IDSG,_) .
 
 (1) Run the following command to explore which security patterns are recommended to mitigate the identified threats
 
-./dlv examples/headlamp/architecture-headlamp-not-mit-sec-1.dlv  security/security.dlv utils/utils.dlv -nofinitecheck -filter=firewall -filter=nmit -filter=secMonCP -filter=secMonCH -filter=mitby
+./dlv examples/headlamp/security-architecture-headlamp.dlv utils/utils.dlv security/security.dlv -nofinitecheck -filter=securityPattern -filter=mitby
 
-The command (1) will provide 20 complete solutions that mitigate all identified threats. Three of these solutions are shown below. We present solution c) in the paper.
+The command (1) will provide 2 complete solutions that mitigate all identified threats. We present the following solution in the paper: 
 
-a)
-- firewall(nuFirewall,can2,gw,[allInputs],[allOutputs])
-- secMonCH(nuSecMonCH,obdGw,dec,min,mout)
+{securityPattern([nuIDSECPAT,firewall,1],[firewall,[can2,ecu3,[nuCHECKER,1]],[nuINPUTS,1],[nuINTERNAL,1],[nuINTERNAL,1]]), mitby([idfl1,[ecu2,can2,ecu3,can1,int2]],bdCtl,[[nuIDSECPAT,firewall,1],firewall]), mitby([idfl1,[ecu2,can2,ecu3,can1,int3]],bdCtl,[[nuIDSECPAT,firewall,1],firewall]), mitby([idfl1,[ecu2,can2,ecu3,can3,int1]],bdCtl,[[nuIDSECPAT,firewall,1],firewall]), mitby([idfl2,[can2,ecu3,can3,int1]],bcps,[[nuIDSECPAT,firewall,1],firewall]), mitby([idfl2,[can2,ecu3,can1,int3]],bcps,[[nuIDSECPAT,firewall,1],firewall]), mitby([idfl2,[can2,ecu3,can1,int2]],bcps,[[nuIDSECPAT,firewall,1],firewall])}
 
-b)
-- firewall(nuFirewall,can2,gw,[allInputs],[allOutputs])
-- secMonCP(nuSecMonCP,bodyCtrl,[ic],[oc],dec,[min],[mout])
 
-c)
-- firewall(nuFirewall,can2,gw,[allInputs],[allOutputs])
+Note that we set the following constraint (in security-architecture-headlamp.dlv) to only show solution where all threats have been mitigated
 
-The above command will only show solutions (i.e., architectures) that all threats are mitigated by the suggested security
-patterns. To also show solutions where where not all threats are mitigated, make sure the following line is commented
-out in examples/headlamp/architecture-headlamp-not-mit-sec-1.dlv (needs manual change)
+:- nmit(X).
 
-:- nmit([Z,V,P,T]) .
+(2) Run the following command to show the safety consequences of deploying security patterns
 
-(2) Run the following command to show the consequences of deploying security patterns on safety
+./dlv examples/headlamp/security-architecture-headlamp.dlv utils/utils.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=ft -filter=fl -filter=ft2fl
 
-./dlv examples/headlamp/architecture-headlamp-not-ctl-saf-2.dlv safety/safety.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSaf2Sec -filter=ntol -filter=fl -filter=conflSec2Saf -filter=fl2Hz
+The command (2) will show the new faults and failures caused by the deployment of security patterns.
 
-The command (2) will show that there is one conflict caused by the deployment of a firewall. 
+(3) Run the following command to show the security consequences of deploying safety patterns
 
-conflSec2Saf(firewall,fl([firewall,firewall,omission,cat]))}
+./dlv examples/headlamp/safety-architecture-headlamp.dlv utils/utils.dlv safety/safety.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=pThreat
 
-This conflict, however, does not lead to any identified hazard as explained in the paper, i.e., there is NO "fl2Hz(firewall,hzHLSys)"
-
-(3) Run the following command to show the consequences of deploying safety patterns on security
-
-./dlv examples/headlamp/architecture-headlamp-not-mit-sec-2.dlv  security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSec2Saf -filter=threat -filter=firewall -filter=mitby
-
-The command (3) will show that there are three new threats caused by the deployment of a monitor actuator (safmon)
-
-- threat([safMon,[safMon,can2,gw,can3,obdConn],int,sev])
-- threat([safMon,[safMon,can2,gw,can1,bt],int,sev]) 
-- threat([safMon,[safMon,can2,gw,can1,cell],int,sev])
-
-These threats, however, can be mitigated by the previously deployed firewall. One can see this by running the following command
-
-./dlv examples/headlamp/architecture-headlamp-not-mit-sec-2.dlv  security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=mitby
-
-As output, you will what security pattern mitigated which threat, including:
-
-- mitby([safMon,[safMon,can2,gw,can3,obdConn],int,sev],firewall) 
-- mitby([safMon,[safMon,can2,gw,can1,bt],int,sev],firewall) 
-- mitby([safMon,[safMon,can2,gw,can1,cell],int,sev],firewall)
-
-Note: There is NO 'conflSec2Saf' because the new threats are mitigated by the preivously deployed firewall, as shown above.
-
------------------------------------------------------------------
-Instruction for running the BMS case study 
-(NOT presented in the paper)
------------------------------------------------------------------
-
-(0) Run the following command to explore which safety patterns are recommended to tolerate the identified failures
-
-./dlv examples/battery/architecture-battery-not-ctl-saf-1.dlv safety/safety.dlv utils/utils.dlv -filter=fl2Hz -filter=tolby -filter=fl -filter=ntol -filter=safMon -filter=tmr
-
-The command (0) will provide 3 complete solutions that tolerate all identified failures.
-
-(1) Run the following command to explore which security patterns are recommended to mitigate the identified threats
-
-./dlv examples/battery/architecture-battery-not-mit-sec-1.dlv  safety/safety.dlv security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=threat -filter=firewall -filter=mitby -filter=secMonCP -filter=secMonCH
-
-The command (1) will provide 5 complete solutions that mitigate all identified threats. Three of these solutions are shown below. We present solution c) in the paper.
-
-(2) Run the following command to show the consequences of deploying security patterns on safety
-
-./dlv examples/battery/architecture-battery-not-ctl-saf-2.dlv  safety/safety.dlv utils/utils.dlv tradeoff/tradeoff.dlv -filter=conflSec2Saf -filter=fl2Hz -filter=firewall
-
-The command (2) will show that there is one conflict (i.e., failure) caused by the deployment of a firewall.  This failure will lead to an identified hazard, as shown below.
-
-- fl2Hz(firewall,hzBat)
-- conflSec2Saf(firewall,fl([firewall,firewall,omission,cat]))
-
-This failure is tolerated by the deployment of a HDR automatically recommended by our machinery.
-
-- hdr(dmoon,bm,ci,moon1,moon2,voterdm,vtoutdm,bat)
-
-(3) Run the following command to show the consequences of deploying safety patterns on security
-
-./dlv examples/battery/architecture-battery-not-mit-sec-2.dlv  security/security.dlv utils/utils.dlv -nofinitecheck tradeoff/tradeoff.dlv -filter=conflSaf2Sec -filter=threat
-
-The command (3) will show that there is one new threat caused by the deployment of a HDR
-
-- threat([voterdm,ci,int,sev])}
-
-This threat is mitigated by the deployment of a security monitor (secMonCP) automtically recommended by our machinery.
-
-- secMonCP(nuSecMonCP,voterdm,[ic],[oc],dec,[min],[mout])
+The command (3) will show the new potential threats caused by the deployment of safety patterns.
 

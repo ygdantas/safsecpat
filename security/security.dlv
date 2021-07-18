@@ -1,73 +1,107 @@
-% run dlv paper-example.dlv
 % ======= SECURITY =========
+
 
 % ***** THREAT CONDITION ******
 % Alphabet for types of threat.
-%    * conf -> confidentiality
+%    * con -> confidentiality
 %    * int -> integrity
-%    * av -> availability
+%    * ava -> availability
 %    * aut -> authentication
 
 
-% hz([CP,TP,cat]) . * cat -> catastrophic
-% hz([CP,TP,haz]) . * haz -> hazardeous
-% hz([CP,TP,maj]) . * maj -> major
-% hz([CP,TP,min]) . * min -> minimal
+%======= Saf2Sec: Faults to Assets =======
+asset(IDSG,CP) :- sg(IDSG,[IDHZ | ATTRSSG]), 
+                  hz(IDHZ,[CP | ATTRSHZ]) .
+
+damageScenario(IDHZ,SECSEV) :- hz(IDHZ,_),
+                               getHazardSev(IDHZ,SAFESEV),
+                               severityMap(SAFESEV,SECSEV) .
+
+threat2damageScenario(IDFL,IDHZ) :- 
+   damageScenario(IDHZ,_),
+   threat(IDFL,_),
+   lmcs2hz(LMCS,IDHZ),
+   mcs(IDMCS,LFAILS),
+   #member(IDMCS,LMCS),
+   #member(IDFL,LFAILS) .
+
+% =======Saf2Sec: Failures to Potential Threas=======
+pThreat(IDFL,[TARGET,HWTARGET,SECTYPE,SECSEV]) :- 
+					          fl(IDFL,ATTRSFL),
+					          ft2fl(IDFT,IDFL),
+							  getFaultCP(IDFT,TARGET),
+							  dep(TARGET,HWTARGET),
+					          getFailureType(IDFL,SAFTYPE),
+					          typeMap(SAFTYPE,SECTYPE),
+					          hz(IDHZ,ATTRSHZ),
+					          mcs(IDMCS,FLISTFAIL),
+					          #member(IDFL,FLISTFAIL),
+					          lmcs2hz(LIDMCS,IDHZ),
+					          #member(IDMCS,LIDMCS),
+							  damageScenario(IDHZ,SECSEV).
+
+pThreat(IDFL,[TARGET,HWTARGET,SECTYPE,SECSEV]) :- 
+					          fl(IDFL,ATTRSFL),
+					          ft2fl(IDFT,IDFL),
+							  getFaultCP(IDFT,TARGET),
+							  ch(TARGET,_,_),
+							  can(HWTARGET),
+							  dep(TARGET,LHWTARGET),
+							  #member(HWTARGET,LHWTARGET),
+					          getFailureType(IDFL,SAFTYPE),
+					          typeMap(SAFTYPE,SECTYPE),
+					          hz(IDHZ,ATTRSHZ),
+					          mcs(IDMCS,FLISTFAIL),
+					          #member(IDFL,FLISTFAIL),
+					          lmcs2hz(LIDMCS,IDHZ),
+					          #member(IDMCS,LIDMCS),
+							  damageScenario(IDHZ,SECSEV).
 
 
-%severe (sev) <- catastrophic (cat)
-potThreat([CP,int,sev]) :- fl([ID,CP,err,cat]) .
-%potThreat([CP,aut,sev]) :- fl([ID,CP,err,cat]) .
+% ======= Potential Threats to Threats  =======
+%% A potential threat becomes a real threat if 
+%% there is a potetial threat that can be reached
+% Risk Assessment: Attack Path Analysis
+threat([IDPT,PATH],[TARGET,HWTARGET,SECTYPE,SECSEV]) :- pThreat(IDPT,[TARGET,HWTARGET,SECTYPE,SECSEV]),
+							               			  reachI(TARGET,HWTARGET,PATH).
 
-potThreat([CP,avl,sev]) :- fl([ID,CP,loss,cat]) .
-%major (maj) <- hazardeous (haz)
-potThreat([CP,int,maj]) :- fl([ID,CP,err,haz]) .
-potThreat([CP,avl,maj]) :- fl([ID,CP,loss,haz]) .
-%moderate (mod) <- major (maj)
-potThreat([CP,int,mod]) :- fl([ID,CP,err,maj]) .
-potThreat([CP,avl,mod]) :- fl([ID,CP,loss,maj]) .
-%negligible (neg) <- minimal (min)
-potThreat([CP,int,neg]) :- fl([ID,CP,err,min]) .
-potThreat([CP,avl,neg]) :- fl([ID,CP,loss,min]) .
+% ======= Threat mitigation with patterns =======
 
+nmit(IDTR) :- threat(IDTR,ATTRSTR),
+			         not mit(IDTR) .
 
-%% bdCh(ID) -> Channel with id ID 
-%              is a boundary
-%% trusted parts and untrusted parts
+%% mit([IDTR,PATH]) :- threat(IDTR,ATTRSTR),
+%% 			        getThreatTarget(IDTR,TARGET),
+%% 			        getThreatType(IDTR,TYPE),
+%% 			        xsecurityPattern(IDPAT,ATTRSPAT),
+%% 			        getSecPatTarget(IDPAT,TARGET),
+%% 			        getSecPatName(IDPAT,PAT),
+%% 			        securityIntent(PAT,ATTRSINTENT),
+%% 			        getSecIntentThreatType(PAT,PATTYPE),
+%% 			        #member(TYPE,PATTYPE),
+%% 			        getThreatPath(IDTR,PATH).
 
-% ***** SECURITY BOUNDARY ******
-%% Possible constraint to be added
-%% :- bdCh(Id), not ch(ID,ICP,OCP) .
+mitby(IDTR,TARGET,[IDPAT,firewall]) :- threat(IDTR,ATTRSTR),
+							      xsecurityPattern(IDPAT,[firewall,[TRUSTEDNETHW,UNTRUSTEDNETHW,CHECKER],INPUTS,INTERNAL,OUTPUTS]),
+							      securityIntent(firewall,ATTRSINTENT),
+							      getThreatPath(IDTR,PATH),
+							      #subList([TRUSTEDNETHW,UNTRUSTEDNETHW],PATH),
+								  getThreatType(IDTR,TYPE),
+								  getSecIntentThreatType(firewall,PATTYPE),	
+								  #member(TYPE,PATTYPE),
+								  getThreatTarget(IDTR,TARGET).
 
-% X and Comm are in different boundaries if X sends messages
-% through a CAN bus (Comm)
-bdCh(X,Comm) :- ch(Id,X,_),
-				dep(Id,Comm),
-				can(Comm) .
-
-% Y and Comm are in different boundaries if Y receives messages
-% through a CAN bus (Comm)
-bdCh(Comm,Y) :- ch(Id,_,Y),
-				dep(Id,Comm),
-				can(Comm) .
-
-
-% ***********************
-nmit([CP,L,TTP,SEV]) :- threat([CP,L,TTP,SEV]), 
-						not mit([CP,L,TTP,SEV]) .
-
-
-% ***** ATTACK PATHS ******
+mitby(IDTR,TARGET,[IDPAT,securityMonitorApp]) :- threat(IDTR,ATTRSTR),
+							      getThreatType(IDTR,TYPE),
+							      xsecurityPattern(IDPAT,[securityMonitorApp,[TARGET | OTHERCPS],_,_,_]),
+							      securityIntent(securityMonitorApp,ATTRSINTENT),
+							      getSecIntentThreatType(securityMonitorApp,PATTYPE),
+								  #member(TYPE,PATTYPE),							      
+							      getSecPatTarget(IDPAT,TARGET).
 
 
-%% public(comm) denotes that the physical 
-%% communication channel Comm may be accessible to the intruder
+% ======= Reachability rules: Attack Paths =======
 
-%% public(cp) denotes that the (physical) 
-%% component cp may be accessible to the intruder
-
-%% readsFromCan(Cp,Can) denotes that the (physical)
-%% component Cp reads from the Can bus
 readsFromCan(Cp,Can) :- 
 		  ch(Id,Cp2,Cp),
 		  dep(Id,Can),
@@ -80,401 +114,226 @@ writesToCan(Cp,Can) :-
 		  dep(Id,Can),
 		  can(Can) .
 
-% YGD: Change reachI to attackVector?
-% Attack vector: Path by which an attacker can gain access to a function in order to deliver a malicious outcome
-reachI(CP,[CP]) :- public(CP) .
 
+%reachI(CP,[CP]) :- public(CP) .
+reachI(CP,HWCP,[HWCP]) :- public(HWCP), dep(CP,HWCP).
+%reachAt(CP,HWCP,[HWCP]) :- public(CP), ch(CH,CP,X), dep(CH,HWCP).
 %% Assumption1: The intruder does not need to reach a Can bus twice.
 %% Assumption2: From a public component that is connected (somehow) to a Can bus, then the intruder can reach the can bus.
 
 %% reachI(Can,[Can,X]) denotes that X can be reached via the Can bus, if X is public and there is a channel
 %% from the Can bus to X
-reachI(Can,[Can,X]) :- 
-	   ch(Ch,Y,X),
+reachI(Ch,Can,[Can,HWCP]) :- 
+	   ch(Ch,Y,X), %ch(celnav,cell,navig)
 	   dep(Ch,Can),
+	   dep(X,HWCP),
 	   can(Can),
-	   %% reachI(X,L),
-	   public(X).
-	  %% not #member(Can,L).
-
+	   public(HWCP).
 
 % Question: Does this rule make sense?
 %% reachI(CP,[X]) denotes that CP can be reached via X, if X is public and there is a channel
 %% from X to CP
-reachI(CP,[X]) :- 
+reachI(CP,HWCP,[HWCP2]) :- 
 	   ch(Ch,X,CP),
 	   wireless(WL),
-	   dep(Ch, WL),
-	   public(X).
+	   dep(Ch,WL), 
+	   dep(CP,HWCP),
+	   dep(X,HWCP2), 
+	   public(HWCP2).
+
+
 
 %% reachI(Can,[Can,X]) denotes that X can be reached via the Can bus, if X is public and there is a channel
 %% from X to the the Can bus
-reachI(Can,[Can,X]) :- 
+reachI(Ch,Can,[Can,HWCP]) :- 
 	   ch(Ch,X,Y),
+	   dep(X,HWCP),
 	   dep(Ch,Can),
 	   can(Can),
 	   %% reachI(X,L),
-	   public(X).
+	   public(HWCP).
 	  %% not #member(Can,L).
 
 %% Assumption1: The intruder does not need to reach a Can bus twice when a component X
 %% writes to the Can bus.
-reachI(Can,[Can|L]) :- 
+reachI(Ch,Can,[Can|L]) :- 
 	  writesToCan(X,Can),
-	  reachI(X,L),
+	  dep(Ch,Can),
+	  dep(X,HWCP),
+	  reachI(X,HWCP,L),
 	  not #member(Can,L).
-
-%writesToCan(Cp,Can) :- %
-%		  ch(Id,Cp,Cp2),
-%		  dep(Id,Can),
-%		  can(Can) .
 
 
 %% Assumption1: The intruder does not need to reach a Can bus twice when a component X
 %% reads from the Can bus.
-reachI(X,[X|L]) :- 
+reachI(X,HWCP,[HWCP|L]) :- 
 	  readsFromCan(X,Can),
-	  reachI(Can,L).
+	  dep(Ch,Can),
+	  dep(X,HWCP),
+	  reachI(Ch,Can,L).
 
-reachI(CP,X) :-
-	  cp(X),
-	  cp(CP), 
-	  ch(CH,X,CP),
-	  can(CAN),
-	  not dep(CH,CAN),
-	  public(X) .
-
-
-% **** ACTUAL THREATS ******
-
-%% A potential threat becomes a real threat (threat(ID,CP,L,int))
-%% if there is a potetial threat that can be reached
-% Risk Assessment: Attack Path Analysis
-threat([CP,L,TTP,SEV]) :- potThreat([CP,TTP,SEV]),
-					      reachI(CP,L).
+%% reachI(CP,X) :-
+%% 	  cp(X),
+%% 	  cp(CP), 
+%% 	  ch(CH,X,CP),
+%% 	  can(CAN),
+%% 	  not dep(CH,CAN),
+%% 	  public(X) .
 
 
-%threat(ID,CP,L,int) :- potThreat(ID,CP,int),
-%                       reachI(CP,L).
+% ======= SECURITY BOUNDARY =======
+%% bdCh(ID) -> Channel with id ID 
+%              is a boundary
+%% trusted parts and untrusted parts
+%% Possible constraint to be added
+%% :- bdCh(Id), not ch(ID,ICP,OCP) .
+
+% X and Comm are in different boundaries if X sends messages
+% through a CAN bus (Comm)
+bdCh(X,Comm) :- ch(Id,X,_),
+				dep(Id,Comm),
+				can(Comm) .
+
+bdCh(HWCP,Comm) :- ch(Id,X,_),
+				   dep(X,HWCP),
+				   dep(Id,Comm),
+				   can(Comm) .
+
+% Y and Comm are in different boundaries if Y receives messages
+% through a CAN bus (Comm)
+bdCh(Comm,Y) :- ch(Id,_,Y),
+				dep(Id,Comm),
+				can(Comm) .
+
+bdCh(Comm,HWCP) :- ch(Id,_,Y),
+			    dep(Y,HWCP),
+				dep(Id,Comm),
+				can(Comm) .
 
 
-% **** Security Patterns ****
-% ****** Security  Pattern: Monitor for components  ***********
-% secMonCP(id,cp,ic,oc,dec,min,mout,mcp), where
-%           
-%     --ic1------>cp --oc1------> 
-%     --icn------>  --ocm------> 
-%        |        ^             |
-%        |        |             |
-%        |        dec           |
-%        |        |             |
-%        -min1--> semo <--mout1 --
-%        -minn-->     <--moutn --
-
-		% cp -> denotes the the corresponding component to which
-		%       the monitor is associated to
-		% ic,oc -> denote the input and output channels that are monitored
-		% dec -> denotes the output channel that transmits the decision
-		% min -> denotes the name of channel with the input channel to the mcp
-		% mout -> denotes the name of channel with the output channel to the mcp
-		% semo -> denotes the monitor component
-
-asmPAT(ID,"has been verified") :- secMonCP(ID,_,_,_,_,_,_) .
-asmPAT(ID,"policies have been defined") :- secMonCP(ID,_,_,_,_,_,_) .
-secMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT]) :- xsecMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT]).
-
-cp(ID) :- xsecMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT]), 
-			 explore(N,secMonCP).
-subcp(ID,CP1) :- xsecMonCP(ID,CP,IC,OC,DEC,[MIN],[MOUT]),
-									subcp(CP,CP1), 
-									explore(N,secMonCP). 
-
-ch(DEC,ID,CP) :- xsecMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT]), 
-				 explore(N,secMonCP).
-
-ch(MIN,ECP,ID) :- xsecMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT]),
-									 ch(IC,ECP,CP), 
-									 explore(N,secMonCP).
+% ======= Security Patterns =======
 
 
-mitby([CP,L,int,SEV],ID) :- 
-	 secMonCP(ID,CP,_,_,_,_,_),
-	 threat([CP,L,int,SEV]).
+% === Firewall ===
+assumption(firewall,are_verified,[CHECKER]) :- 
+  		   securityPattern(IDPAT,[firewall,[X,Y,CHECKER],_,_,_]).
+assumption(firewall,have_policies,[CHECKER]) :- 
+  		   securityPattern(IDPAT,[firewall,[X,Y,CHECKER],_,_,_]).	   
 
-mit([CP,L,int,SEV]) :- 
-	 secMonCP(ID,CP,_,_,_,_,_),
-	 threat([CP,L,int,SEV]).
+securityIntent(firewall,[[int,ava]]) .
 
-
-
-
-% ****** Security  Pattern: Monitor for channels  ***********
-% secMonCH(id,ch,dec,min,mout,mcp), where
-%           
-%     cp1...------oc1------>...cp2
-%     cp1...------min------>semo------>mout------>...cp2 
-%     cp1...<-----dec-------semo
-		% cp1 -> denotes the component that generates the output (not needed in our specification)
-		% oc1 -> denotes the output channel that is monitored
-		% dec -> denotes the output channel that transmits the decision		
-		% min -> denotes the name of channel with the input channel to the mcp
-		% mout -> denotes the name of channel with the output channel to the mcp
-		% semo -> denotes the monitor component
-		% cp2 -> denotes the component that receives the output from cp1 (not needed in our specification)		
-
-asmPAT(ID,"has been verified") :- secMonCH(ID,_,_,_,_) .
-asmPAT(ID,"policies have been defined") :- secMonCH(ID,_,_,_,_) .
-secMonCH(ID,CH,DEC,MIN,MOUT) :- xsecMonCH(ID,CH,DEC,MIN,MOUT). 
-%secMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT],SEMO) :- xsecMonCP(ID,CP,[IC],[OC],DEC,[MIN],[MOUT],SEMO).
-
-ch(DEC,ID,CP1) :- xsecMonCH(ID,CH,DEC,MIN,MOUT),
-					  ch(CH,CP1,_), 
-				      explore(N,secMonCH).
-
-ch(MIN,CP1,ID) :- xsecMonCH(ID,CH,DEC,MIN,MOUT),
-					  ch(CH,CP1,_), 
-				      explore(N,secMonCH).
-
-ch(MOUT,ID,CP2) :- xsecMonCH(ID,CH,DEC,MIN,MOUT),
-					   ch(CH,_,CP2), 
-				       explore(N,secMonCH).
-
-remove(CH) :- xsecMonCH(ID,CH,DEC,MIN,MOUT),
-		ch(CH,_,_),
-		explore(N,secMonCH).
-
-mitby([CP2,L,int,SEV],ID) :- 
-	 secMonCH(ID,CH,_,_,_),
-	 ch(CH,_,CP2),
-	 threat([CP2,L,int,SEV]).
-%	 #subList([CP1],L).
+securityPattern(IDPAT,[firewall,[X,Y,CHECKER],INPUTS,INTERNAL,INTERNAL]) :- 
+   xsecurityPattern(IDPAT,[firewall,[X,Y,CHECKER],INPUTS,INTERNAL,OUTPUTS]).
 
 
-mit([CP2,L,int,SEV]) :- 
-	 secMonCH(ID,CH,_,_,_),
-	 ch(CH,_,CP2),
-	 threat([CP2,L,int,SEV]).
-%	 #subList([CP1],L).
+% === Security Monitor Application ===
+assumption(firewall,are_verified,[CHECKER]) :- 
+	securityPattern(IDPAT,[securityMonitorApp,[TARGET,CHECKER],INPUTS,INTERNAL,OUTPUTS]).
+assumption(firewall,have_policies,[CHECKER]) :- 
+	securityPattern(IDPAT,[securityMonitorApp,[TARGET,CHECKER],INPUTS,INTERNAL,OUTPUTS]).	
 
+securityIntent(securityMonitorApp,[[int]]) .
 
-mitby([CP,L,int,SEV],ID) :-
-	 cp(CP),
-	 cp(CP1), 
-	 secMonCH(ID,CH,_,_,_),
-	 ch(CH,CP1,_),
-	 threat([CP,L,int,SEV]),
-	 #subList([CP1],L).
-%	 #last(L, CP1).	 
-
-
-mit([CP,L,int,SEV]) :-
-	 cp(CP),
-	 cp(CP1), 
-	 secMonCH(ID,CH,_,_,_),
-	 ch(CH,CP1,_),
-	 threat([CP,L,int,SEV]),
-	 #subList([CP1],L).
-%	 #last(L, CP1).	 
-
-
-
-
-
-% **** Security pattern: Firewall ******
-
-%% firewall(fw,can,ci,[ch20],[ch21],fwcp).
-%% firewall(ID,Comm,CP,
-%%          [CH00,...,CHN0],
-%%          [CH01,...,CHN1],FWCP) .
-%% xfirewall(ID,Comm,CP,
-%%          [CH0,...,CHN]
-%%          [CH00,...,CHN0],
-%%          [CH01,...,CHN1],FWCP) .
-%% where Comm,CP is a boundary (see bdCh), and fw is the firewall component.
-%% 
-%%
-%% Before:
-%% -ch0--> comm -ch0--> CP
-%% -ch1--> comm -ch1--> CP
-%% ...
-%% -chN--> comm -chN--> CP
-
-%% After
-%% -ch00--> comm -ch00--> FWCP -ch01-> CP
-%% -ch10--> comm -ch10--> FWCP -ch11-> CP
-%% ...
-%% -chN0--> comm -chN0--> FWCP -chN1-> CP
-
-% Firewall component
-asmPAT(ID,"has been verified") :- firewall(ID,_,_,_,_) .
-asmPAT(ID,"policies have been defined") :- firewall(ID,_,_,_,_) .
-asmPAT(ID,"incoming messages can be inspected") :- firewall(ID,_,_,_,_) .
-firewall(ID,COMM,CP,[CH00],[CH01]) :- xfirewall(ID,COMM,CP,[CH0],[CH00],[CH01]) .
-
-cp(ID) :- xfirewall(ID,COMM,CP,[CH0],[CH00],[CH01]), 
-				explore(N,firewall).
-
-% Create proxy for the firewall 
-%% Remove channel if firewall is running
-remove(CH0) :- xfirewall(ID,COMM,CP,[CH0],[CH00],[CH01]), 
-				explore(N,firewall).
-
-dep(CH00,COMM) :- xfirewall(ID,COMM,CP,[CH0],[CH00],[CH01]), 
-					dep(CH0,COMM), explore(N,firewall).
-%% Create channel from can bus to firewall 
-ch(CH00,OCP,ID) :- 
-	 xfirewall(ID,COMM,CP,[CH0],[CH00],[CH01]),
-   ch(CH0,OCP,CP), explore(N,firewall).
-%% Create channel from firewall to charging interface 
-ch(CH01,ID,CP) :- xfirewall(ID,COMM,CP,[CH0],[CH00],[CH01]), 
-						explore(N,firewall).
-
-
-% Threat (integrity)  is mitigated if firewall is running 
-%% can mitigate malicious messages from ci to can
-mitby([CP,L,int,SEV],ID) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,int,SEV]),
-	 #subList([Comm,CP2],L).
-
-% firewall(nuFirewall,can2,gw,[allInputs],[allOutputs],nufw)
-% L = [can2,obdConn]
-mit([CP,L,int,SEV]) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,int,SEV]),
-	 #subList([Comm,CP2],L).
-
-mitby([CP,L,avl,SEV],ID) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,avl,SEV]),
-	 #subList([Comm,CP2],L).
-
-% firewall(nuFirewall,can2,gw,[allInputs],[allOutputs],nufw)
-% L = [can2,obdConn]
-mit([CP,L,avl,SEV]) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,avl,SEV]),
-	 #subList([Comm,CP2],L).	 
-
-%mit([CP,L,int,SEV]) :- 
-%	 firewall(ID,Comm,CP2,_,_,FWCP),
-%	 threat([CP,L,int,SEV]),
-%	 #subList([Comm,CP2],L).
-%	if(IF,PATH),
-	% output of cp1 is before or equal than the output from the cp with hazard    
-%	before(CHOUT,CH,IF),
-
-%% can mitigate malicious messages from can to ci
-mitby([CP,L,int,SEV],ID) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,int,SEV]),
-	 #subList([CP2,Comm],L).
-mit([CP,L,int,SEV]) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,int,SEV]),
-	 #subList([CP2,Comm],L).
-
-mitby([CP,L,avl,SEV],ID) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,avl,SEV]),
-	 #subList([CP2,Comm],L).
-mit([CP,L,avl,SEV]) :- 
-	 firewall(ID,Comm,CP2,_,_),
-	 threat([CP,L,avl,SEV]),
-	 #subList([CP2,Comm],L).
-
+securityPattern(IDPAT,[securityMonitorApp,[TARGET,CHECKER],INPUTS,INTERNAL,OUTPUTS]) :- 
+		xsecurityPattern(IDPAT,[securityMonitorApp,[TARGET,CHECKER],INPUTS,INTERNAL,OUTPUTS]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Exploration
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-threatBeenMit([ID,L,TYPE,SEV]) :- mitby([ID,L,TYPE,SEV],ID2),
-							      firewall(ID2,_,_,_,_), 
- 								  ID2 != nuFirewall,
-								  explore(N,firewall) .
+mit(IDTR) :- threat(IDTR,ATTRSTR),
+			 getThreatPath(IDTR,PATH),
+		     nuMitigated(IDTR,[IDPAT | ATTRSINTENT]).
 
-threatBeenMit([ID,L,TYPE,SEV]) :- mitby([ID,L,TYPE,SEV],ID2),
-							      secMonCH(ID2,_,_,_,_), 
- 								  ID2 != nuSecMonCH,
-								  explore(N,secMonCH) .
+nuMitigated(IDTR,[IDPAT | ATTRSINTENT]) :-
+       xsecurityPattern(IDPAT,[firewall,[HWUNIT,COMM,CHECKER],INPUTS,INTERNAL,OUTPUTS]),
+       securityIntent(firewall,ATTRSINTENT),
+       threat(IDTR,ATTRSTR),
+       getThreatPath(IDTR,PATH),
+       #subList([HWUNIT,COMM],PATH).
 
-threatBeenMit([ID,L,TYPE,SEV]) :- mitby([ID,L,TYPE,SEV],ID2),
-							      secMonCP(ID2,_,_,_,_,_,_),
- 								  ID2 != nuSecMonCP,
-								  explore(N,secMonCP) .
+nuMitigated(IDTR,[IDPAT | ATTRSINTENT]) :-
+       xsecurityPattern(IDPAT,[firewall,[COMM,HWUNIT,CHECKER],INPUTS,INTERNAL,OUTPUTS]),
+       securityIntent(firewall,ATTRSINTENT),
+       threat(IDTR,ATTRSTR),
+       getThreatPath(IDTR,PATH),
+       #subList([COMM,HWUNIT],PATH).
 
-%%%%%%% Security Monitor Component %%%%%%%
-xsecMonCP(nuSecMonCP,CP,[ic],[oc],dec,[min],[mout])
+
+xsecurityPattern([nuIDSECPAT,firewall,CTR],[firewall,[HWUNIT,COMM,[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
 v
-nxsecMonCP(nuSecMonCP,CP,[ic],[oc],dec,[min],[mout])
-	:- cp(CP),
-	   threat([CP,L,int,SEV]),
-	   not threatBeenMit([CP,L,int,SEV]),	
-       explore(N,secMonCP).
+xnsecurityPattern([nuIDSECPAT,firewall,CTR],[firewall,[HWUNIT,COMM,[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
+	:- threat(IDTR,ATTRSTR),
+	   getThreatType(IDTR,TYPE),
+	   getThreatTarget(IDTR,TARGET),
+	   getThreatPath(IDTR,PATH),
+	   can(COMM),
+	   hw(HWUNIT),
+	   #subList([HWUNIT,COMM],PATH),
+	   counterSecPat(CTR),
+	   securityIntent(firewall,ATTRSINTENT),
+	   getSecIntentThreatType(firewall,TRTYPE),
+	   #member(TYPE,TRTYPE),
+	   exploreSecPat(firewall).
 
-
-
-:- #count{CP : xsecMonCP(nuSecMonCP,CP,_,_,_,_,_)} > N, explore(N,secMonCP) .
-
-%%%%%%% Security Monitor Channel %%%%%%%
-xsecMonCH(nuSecMonCH,CH,dec,min,mout)
+xsecurityPattern([nuIDSECPAT,firewall,CTR],[firewall,[COMM,HWUNIT,[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
 v
-nxsecMonCH(nuSecMonCH,CH,dec,min,mout)
-	:- ch(CH,CP1,_),
-	   threat([CP,L,int,SEV]),
-	   not threatBeenMit([CP,L,int,SEV]),	
-       #subList([CP1],L),
-       explore(N,secMonCH).
-
-:- #count{CH : xsecMonCH(nuSecMonCH,CH,_,_,_)} > N, explore(N,secMonCH) .
-
-
-%%%%%%% Firewall %%%%%%%
-
-xfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
-v 
-nxfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
- 	:-  can(COMM),
- 		cp(CP),
- 		threat([X,L,int,SEV]),
- 		not threatBeenMit([X,L,int,SEV]),
-		bdCh(COMM,CP),
-		#subList([COMM,CP], L),
-		explore(N,firewall) .
-
-xfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
-v 
-nxfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
- 	:-  can(COMM),
- 		cp(CP),
- 		threat([X,L,int,SEV]),
- 		not threatBeenMit([X,L,int,SEV]),
-		bdCh(CP,COMM),
-		#subList([COMM,CP], L),
-		explore(N,firewall) .
+xnsecurityPattern([nuIDSECPAT,firewall,CTR],[firewall,[COMM,HWUNIT,[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
+	:- threat(IDTR,ATTRSTR),
+	   getThreatType(IDTR,TYPE),
+	   getThreatTarget(IDTR,TARGET),
+	   getThreatPath(IDTR,PATH),
+	   can(COMM),
+	   hw(HWUNIT),
+	   #subList([COMM,HWUNIT],PATH),
+	   counterSecPat(CTR),
+	   securityIntent(firewall,ATTRSINTENT),
+	   getSecIntentThreatType(firewall,TRTYPE),
+	   #member(TYPE,TRTYPE),
+	   exploreSecPat(firewall).
 
 
-xfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
-v 
-nxfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
- 	:-  can(COMM),
- 		cp(CP),
- 		threat([X,L,avl,SEV]),
- 		not threatBeenMit([X,L,avl,SEV]),
-		bdCh(COMM,CP),
-		#subList([COMM,CP], L),
-		explore(N,firewall) .
+nuMitigated(IDTR,[IDPAT | ATTRSINTENT]) :-
+       xsecurityPattern(IDPAT,[securityMonitorApp,[TARGET | OTHERCPS],INPUTS,INTERNAL,OUTPUTS]),
+       securityIntent(PAT,ATTRSINTENT),
+       threat(IDTR,ATTRSTR),
+       getThreatTarget(IDTR,TARGET),
+       getThreatType(IDTR,TYPE),
+	   getSecIntentThreatType(securityMonitorApp,PATTYPE),
+	   #member(TYPE,PATTYPE).
 
-xfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
-v 
-nxfirewall(nuFirewall,COMM,CP,[allChToBeRemoved],[allInputs],[allOutputs]) 
- 	:-  can(COMM),
- 		cp(CP),
- 		threat([X,L,avl,SEV]),
- 		not threatBeenMit([X,L,avl,SEV]),
-		bdCh(CP,COMM),
-		#subList([COMM,CP], L),
-		explore(N,firewall) .
+xsecurityPattern([nuIDSECPAT,securityMonitorApp,CTR],[securityMonitorApp,[TARGET,[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
+v
+xnsecurityPattern([nuIDSECPAT,securityMonitorApp,CTR],[securityMonitorApp,[TARGET,[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
+	:- threat(IDTR,ATTRSTR),
+	   getThreatType(IDTR,TYPE),
+	   getThreatTarget(IDTR,TARGET),
+	   securityIntent(securityMonitorApp,ATTRSINTENT),
+	   getSecIntentThreatType(securityMonitorApp,PATTYPE),
+	   #member(TYPE,PATTYPE),
+	   counterSecPat(CTR),
+	   exploreSecPat(securityMonitorApp).
 
 
-:- #count{COMM,CP : xfirewall(nuFirewall,COMM,CP,_,_,_)} > N, explore(N,firewall) .
+
+#const numSecPatMin = 1.
+#const numSecPatMax = 1. % TODO: Assign the number of failures to numFailureMax 
+counterSecPat(numSecPatMin..numSecPatMax).
+
+
+:- xsecurityPattern([nuIDSECPAT,firewall,CTR1],[firewall,[COMM1,HWUNIT1,[nuCHECKER,CTR1]],[nuINPUTS,CTR1],[nuINTERNAL,CTR1],[nuOUTPUTS,CTR1]]),
+   xsecurityPattern([nuIDSECPAT,firewall,CTR2],[firewall,[COMM2,HWUNIT2,[nuCHECKER,CTR2]],[nuINPUTS,CTR2],[nuINTERNAL,CTR2],[nuOUTPUTS,CTR2]]),
+   COMM1 != COMM2, CTR1 == CTR2 .
+
+:- xsecurityPattern([nuIDSECPAT,firewall,CTR1],[firewall,[COMM1,HWUNIT1,[nuCHECKER,CTR1]],[nuINPUTS,CTR1],[nuINTERNAL,CTR1],[nuOUTPUTS,CTR1]]),
+   xsecurityPattern([nuIDSECPAT,firewall,CTR2],[firewall,[COMM2,HWUNIT2,[nuCHECKER,CTR2]],[nuINPUTS,CTR2],[nuINTERNAL,CTR2],[nuOUTPUTS,CTR2]]),
+   HWUNIT1 != HWUNIT2, CTR1 == CTR2 .
+
+:- xsecurityPattern([nuIDSECPAT,firewall,CTR1],[firewall,[COMM1,HWUNIT1,[nuCHECKER,CTR1]],[nuINPUTS,CTR1],[nuINTERNAL,CTR1],[nuOUTPUTS,CTR1]]),
+   xsecurityPattern([nuIDSECPAT,firewall,CTR2],[firewall,[COMM1,HWUNIT1,[nuCHECKER,CTR2]],[nuINPUTS,CTR2],[nuINTERNAL,CTR2],[nuOUTPUTS,CTR2]]),
+   CTR1 != CTR2 .
+
+:- xsecurityPattern([nuIDSECPAT,securityMonitorApp,CTR1],[securityMonitorApp,[TARGET,[nuCHECKER,CTR1]],[nuINPUTS,CTR1],[nuINTERNAL,CTR1],[nuOUTPUTS,CTR1]]),
+   xsecurityPattern([nuIDSECPAT,securityMonitorApp,CTR2],[securityMonitorApp,[TARGET,[nuCHECKER,CTR2]],[nuINPUTS,CTR2],[nuINTERNAL,CTR2],[nuOUTPUTS,CTR2]]),
+   CTR1 != CTR2 .
+
