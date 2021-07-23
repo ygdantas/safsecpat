@@ -37,7 +37,7 @@ hasCascadingFailure(IDFL,IDFL2) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT])
 %			                        #insLast(FLISTFAIL,IDFL,NEWFLISTFAIL),                        
 %			                        IDFL2 != IDFL .
 
-% Consequence due to the deployment of IDPAT and its failure IDFL
+% It is an actual safety consequence if the failure IDFL (due to the deployment of IDPAT) leads to a cascading failure
 consequenceSec2Saf(IDPAT,IDFL) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]),
 								  getFirewallCP(IDPAT,FW),
 								  hasCascadingFailure(IDFL,IDFL2),
@@ -82,7 +82,7 @@ pThreat(IDPAT,[no_deployment,CHECKER,SECTYPE,SECSEV]) :- xsafetyPattern(IDPAT,AT
 								           getHazardSev(IDHZ,SAFSEV),
 								           severityMap(SAFSEV,SECSEV).
 
-% There is a consequence (i.e., a threat) if the checker (e.g., monitor) of the safety pattern can be reached (pThreat -> threat)
+% It is an actual security consequence if the checker (e.g., monitor) of the safety pattern can be reached (pThreat -> threat)
 consequenceSaf2Sec(IDPAT,IDPT) :- xsafetyPattern(IDPAT,ATTRSPAT),
 							      getSafPatChecker(IDPAT,CHECKER),
 							      pThreat(IDPT,[CP,CHECKER,_,_]),

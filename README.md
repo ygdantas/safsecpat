@@ -56,7 +56,7 @@ Note that we set the following constraint (in security-architecture-headlamp.dlv
 
 (2) Run the following command to show the safety consequences of deploying security patterns
 
-./dlv examples/headlamp/security-architecture-headlamp.dlv utils/utils.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=ft -filter=fl -filter=ft2fl -filter=newmcs -filter=newlmcs2hz
+./dlv examples/headlamp/security-architecture-headlamp.dlv utils/utils.dlv security/security.dlv tradeoff/tradeoff.dlv -nofinitecheck -filter=ft -filter=fl -filter=ft2fl -filter=hasCascadingFailure
 
 The command (2) will show the new faults and failures caused by the deployment of security patterns.
 
