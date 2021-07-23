@@ -95,8 +95,8 @@ ft2fl(idft2,idfl2).
 
 mcs(idmcs1,[idfl1]).
 mcs(idmcs2,[idfl2]).
-lmcs2hz([idmcs1,idmcs2],hz1).
-lmcs2hz([idmcs1],hz1).
+lmcs2hz([idmcs2,idmcs1],hz1).
+%lmcs2hz([idmcs1],hz1).
 
 %avoided(idfl2)
 

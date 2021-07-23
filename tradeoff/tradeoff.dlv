@@ -1,31 +1,4 @@
-%%%%%%%%%%%%% Security to Safety %%%%%%%%%%%%%
-
-%% Firewall conflict
-%%% There is a hazard associated to the firewall, if a firewall is deployed. 
-%%% There is a sub-hazard associated to the above hazard, if there is a hazard associated to the component 
-%%%	 the receives outputs from the deployed firewall
-
-%fl([CP,CP,err,cat]) :- firewall(ID,CP,Comm,_,_,FWCP),
-%					  can(Comm),
-%					  dep(CH,Comm),
-%					  fl([FL,FWCP,omission,cat]) .
-
-%fl([Comm,Comm,err,cat]) :- firewall(ID,Comm,CP,_,_,FWCP),
-%					  can(Comm),
-%					  dep(CH,Comm),
-%					  fl([FL,FWCP,omission,cat]) .
-
-%%hz([CP,err,cat]) :- firewall(ID,Comm,CP,_,_,FWCP),
-%%					  can(Comm),
-%%					  dep(navigGW,Comm).
-%%				      ch(CH,Comm,CP),
-%%					  hz([FWCP,omission,cat]) .
-
-%%hz([Comm,err,cat]) :- firewall(ID,Comm,CP,_,_,FWCP),
-%%				      ch(CH,CP,Comm),
-%%					  hz([FWCP,omission,cat]) .
-
-% TODO: new HZ associated to all elements after CP (in the information flow)?					  
+%%%%%%%%%%%%% Safety consequences due to the deployment of security patterns %%%%%%%%%%%%%
 
 ft(IDPAT,[FW]) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]), getFirewallCP(IDPAT,FW).
 fl(IDFL,[err]) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]), getFirewallCP(IDPAT,FW), ft(IDPAT,ATTRSFT), getFaultCP(IDPAT,FW), createID(IDPAT,firewall,IDFL).
@@ -38,30 +11,46 @@ ft2fl(IDPAT,IDFL) :- xsecurityPattern(IDPAT,[securityMonitorApp | ATTRSPAT]),
 					 getSecMonCP(IDPAT,MON), ft(IDPAT,ATTRSFT), getFaultCP(IDPAT,MON), fl(IDFL,[err]), createID(IDPAT,securityMonitorApp,IDFL).
 
 
-%% mcs(IDMCS,FLISTFAIL) :- xsecurityPattern(IDPAT,[firewall,ATTRSPAT), 
-%%                         getFirewallCP(IDPAT,FW),
-%%                         ft(IDFT,ATTRSFT),
-%%                         getFaultCP(IDFT,FW),
-%%                         ft2fl(IDFT,IDFL),
-%%                         fl(IDFL,ATTRSFL),
+newmcs(IDMCS,NEWFLISTFAIL,IDFL2) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]), 
+			                        getFirewallCP(IDPAT,FW),
+			                        getFirewallTargetHW(IDPAT,HWUNIT),
+			                        getFirewallTargetCOMM(IDPAT,COMM),
+			                        dep(CH1,COMM), 
+			                        ft(IDFT,ATTRSFT),
+			                        getFaultCP(IDFT,FW),
+			                        ft2fl(IDFT,IDFL),
+			                        fl(IDFL,ATTRSFL),
+			                        if(IF,PATH),
+			                        dep(CP,HWUNIT),
+			                        ch(CH2,_,CP), 
+			                        before(CH2,CH1,IF), 
+			                        ch(CH,CP1,CP2), 
+			                        before(CH1,CH,IF),
+			                        ft(IDFT2,ATTRSFT2),
+			                        getFaultCP(IDFT2,CP2),
+			                        ft2fl(IDFT2,IDFL2),
+			                        fl(IDFL2,ATTRSFL2),
+			                        mcs(IDMCS,FLISTFAIL),
+			                        #member(IDFL2,FLISTFAIL),
+			                        #insLast(FLISTFAIL,IDFL,NEWFLISTFAIL),                        
+			                        IDFL2 != IDFL .
 
-%% fl2Hz(ID2,IDH) :- firewall(ID,Comm,CP,_,_),
-%% 				  fl([ID2,ID,TYPE1,SEV1]),
-%% 				  can(Comm),
-%% 				  dep(CH1,Comm),
-%% 				  ch(CH2,_,CP),
-%% 				  if(IF,PATH),
-%% 				  before(CH1,CH2,IF),
-%% 				  ch(CH3,CPI,CPO),
-%% 				  before(CH3,CH1,IF),
-%% 				  fl([ID3,CPI,err,SEV2]),
-%% 				  hz([IDH,CP2,TYPE3]),
-%% 				  fl2Hz(ID3,IDH) .
+newlmcs2hz(NLIDMCS,HZ) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]),
+				         getFirewallCP(IDPAT,FW),
+	                     ft(IDFT,ATTRSFT),
+	                     getFaultCP(IDFT,FW),
+	                     ft2fl(IDFT,IDFL),
+	                     fl(IDFL,ATTRSFL),			         
+				         newmcs(IDNMCS,NEWFLISTFAIL,IDFL2),
+				         #member(IDFL,NEWFLISTFAIL),
+				         mcs(IDMCS,FLISTFAIL),
+				         #member(IDFL2,FLISTFAIL),
+				         lmcs2hz(LIDMCS,HZ),
+				         #member(IDMCS,LIDMCS),
+				         #insLast(LIDMCS,IDNMCS,NLIDMCS).
 
 
-
-
-%%%%%%%%%%%%% Safety to Security %%%%%%%%%%%%%
+%%%%%%%%%%%%% Security consequences due to the deployment of safety patterns %%%%%%%%%%%%%
 pThreat(IDPAT,[CP,CHECKER,SECTYPE,SECSEV]) :- xsafetyPattern(IDPAT,ATTRSPAT),
 										   getSafPatChecker(IDPAT,CHECKER),
 										   dep(CP,CHECKER),

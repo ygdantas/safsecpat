@@ -134,6 +134,14 @@ getSecIntentThreatType(PAT,TYPE) :- securityIntent(PAT,[TYPE | ATTRSINTENT]) .
 
 getFirewallCP(IDPAT,CHECKER)  :- xsecurityPattern(IDPAT,[firewall,[_,_,CHECKER],_,_,_]).
 
+getFirewallCOMM(IDPAT,COMM)  :- xsecurityPattern(IDPAT,[firewall,[COMM,_,_],_,_,_]), can(COMM).
+getFirewallCOMM(IDPAT,COMM)  :- xsecurityPattern(IDPAT,[firewall,[_,COMM,_],_,_,_]), can(COMM).
+
+getFirewallTargetCOMM(IDPAT,COMM)  :- xsecurityPattern(IDPAT,[firewall,[COMM,_,_],_,_,_]), can(COMM).
+getFirewallTargetCOMM(IDPAT,COMM)  :- xsecurityPattern(IDPAT,[firewall,[_,COMM,_],_,_,_]), can(COMM).
+getFirewallTargetHW(IDPAT,HWUNIT)  :- xsecurityPattern(IDPAT,[firewall,[_,HWUNIT,_],_,_,_]), hw(HWUNIT), not can(HWUNIT).
+getFirewallTargetHW(IDPAT,HWUNIT)  :- xsecurityPattern(IDPAT,[firewall,[HWUNIT,_,_],_,_,_]), hw(HWUNIT), not can(HWUNIT).
+
 getSecMonCP(IDPAT,CHECKER)  :- xsecurityPattern(IDPAT,[securityMonitorApp,[_,CHECKER],_,_,_]).
 
 createID(X,Y,[X,Y]) :- xsecurityPattern(X,[Y,[_,_,CHECKER],_,_,_]), Y == firewall .
