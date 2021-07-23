@@ -10,8 +10,7 @@ fl(IDFL,[err]) :- xsecurityPattern(IDPAT,[securityMonitorApp | ATTRSPAT]),
 ft2fl(IDPAT,IDFL) :- xsecurityPattern(IDPAT,[securityMonitorApp | ATTRSPAT]), 
 					 getSecMonCP(IDPAT,MON), ft(IDPAT,ATTRSFT), getFaultCP(IDPAT,MON), fl(IDFL,[err]), createID(IDPAT,securityMonitorApp,IDFL).
 
-
-newmcs(IDMCS,NEWFLISTFAIL,IDFL2) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]), 
+hasCascadingFailure(IDFL,IDFL2) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]), 
 			                        getFirewallCP(IDPAT,FW),
 			                        getFirewallTargetHW(IDPAT,HWUNIT),
 			                        getFirewallTargetCOMM(IDPAT,COMM),
@@ -32,23 +31,18 @@ newmcs(IDMCS,NEWFLISTFAIL,IDFL2) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]
 			                        fl(IDFL2,ATTRSFL2),
 			                        mcs(IDMCS,FLISTFAIL),
 			                        #member(IDFL2,FLISTFAIL),
-			                        #insLast(FLISTFAIL,IDFL,NEWFLISTFAIL),                        
-			                        IDFL2 != IDFL .
+			                        lmcs2hz(LIDMCS,HZ),
+			                        hz(HZ,ATTRSHZ),
+			                        #member(IDMCS,LIDMCS).
+%			                        #insLast(FLISTFAIL,IDFL,NEWFLISTFAIL),                        
+%			                        IDFL2 != IDFL .
 
-newlmcs2hz(NLIDMCS,HZ) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]),
-				         getFirewallCP(IDPAT,FW),
-	                     ft(IDFT,ATTRSFT),
-	                     getFaultCP(IDFT,FW),
-	                     ft2fl(IDFT,IDFL),
-	                     fl(IDFL,ATTRSFL),			         
-				         newmcs(IDNMCS,NEWFLISTFAIL,IDFL2),
-				         #member(IDFL,NEWFLISTFAIL),
-				         mcs(IDMCS,FLISTFAIL),
-				         #member(IDFL2,FLISTFAIL),
-				         lmcs2hz(LIDMCS,HZ),
-				         #member(IDMCS,LIDMCS),
-				         #insLast(LIDMCS,IDNMCS,NLIDMCS).
-
+% Consequence due to the deployment of IDPAT and its failure IDFL
+consequenceSec2Saf(IDPAT,IDFL) :- xsecurityPattern(IDPAT,[firewall | ATTRSPAT]),
+								  getFirewallCP(IDPAT,FW),
+								  hasCascadingFailure(IDFL,IDFL2),
+								  ft2fl(IDFT,IDFL),
+								  getFaultCP(IDFT,FW).
 
 %%%%%%%%%%%%% Security consequences due to the deployment of safety patterns %%%%%%%%%%%%%
 pThreat(IDPAT,[CP,CHECKER,SECTYPE,SECSEV]) :- xsafetyPattern(IDPAT,ATTRSPAT),
@@ -88,3 +82,8 @@ pThreat(IDPAT,[no_deployment,CHECKER,SECTYPE,SECSEV]) :- xsafetyPattern(IDPAT,AT
 								           getHazardSev(IDHZ,SAFSEV),
 								           severityMap(SAFSEV,SECSEV).
 
+% There is a consequence (i.e., a threat) if the checker (e.g., monitor) of the safety pattern can be reached (pThreat -> threat)
+consequenceSaf2Sec(IDPAT,IDPT) :- xsafetyPattern(IDPAT,ATTRSPAT),
+							      getSafPatChecker(IDPAT,CHECKER),
+							      pThreat(IDPT,[CP,CHECKER,_,_]),
+							      reachI(CP,CHECKER,PATH).
