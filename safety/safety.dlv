@@ -133,25 +133,25 @@ ch(CH,CP1,CP2) :- newCh(CH,CP1,CP2).
 
 % ======= Failure avoidance with patterns
 avoided(IDFL,[IDPAT | ATTRSINTENT]) :- fl(IDFL,ATTRSFL),
-							                         getFailureType(IDFL,TYPE),
-                        			         ft2fl(IDFT,IDFL),
-                        			         %Faults may be classified as systematic/random. This would have implications to the safety pattern, e.g., Homogeneous/heterogeneous.
-                        				 			 ft(IDFT,ATTRSFT), 
-                        				 			 getFaultCP(IDFT,TARGET),			                 
-                        			         safetyPattern(IDPAT,ATTRSPAT),
-                        							 getSafPatName(IDPAT,PAT),
-                        							 getSafPatTarget(IDPAT,TARGET),
-                        							 safetyIntent(PAT,[PATTYPE | ATTRSINTENT]). 						 
+							                  getFailureType(IDFL,TYPE),
+                        			      ft2fl(IDFT,IDFL),
+                        			      %Faults may be classified as systematic/random. This would have implications to the safety pattern, e.g., Homogeneous/heterogeneous.
+                        				 	ft(IDFT,ATTRSFT), 
+                        				 	getFaultCP(IDFT,TARGET),			                 
+                        			      safetyPattern(IDPAT,ATTRSPAT),
+                        					getSafPatName(IDPAT,PAT),
+                        					getSafPatTarget(IDPAT,TARGET),
+                        					safetyIntent(PAT,[PATTYPE | ATTRSINTENT]). 						 
 
 avoidedby(IDFL,TARGET,[IDPAT | ATTRSINTENT]) :- fl(IDFL,ATTRSFL),
-                                               getFailureType(IDFL,TYPE),
-                                               ft2fl(IDFT,IDFL),
-                                               ft(IDFT,ATTRSFT), 
-                                               getFaultCP(IDFT,TARGET),                      
-                                               safetyPattern(IDPAT,ATTRSPAT),
-                                               getSafPatName(IDPAT,PAT),
-                                               getSafPatTarget(IDPAT,TARGET),
-                                               safetyIntent(PAT,[PATTYPE | ATTRSINTENT]). 
+                                                getFailureType(IDFL,TYPE),
+                                                ft2fl(IDFT,IDFL),
+                                                ft(IDFT,ATTRSFT), 
+                                                getFaultCP(IDFT,TARGET),                      
+                                                safetyPattern(IDPAT,ATTRSPAT),
+                                                getSafPatName(IDPAT,PAT),
+                                                getSafPatTarget(IDPAT,TARGET),
+                                                safetyIntent(PAT,[PATTYPE | ATTRSINTENT]). 
 
 % ======== Safety patterns ========
 
@@ -291,32 +291,37 @@ safetyPattern(IDPAT,[monitorActuator,[TARGET,REDUNDANCY,CHECKER],INPUTS,INTERNAL
 
  
 avoidedMCS(IDMCS,ATTRSINTENT) :- mcs(IDMCS,FLISTFAIL),
-                     			       fl(IDFL,ATTRSFL),
+                     			   fl(IDFL,ATTRSFL),
                                  #member(IDFL,FLISTFAIL),
                                  nuAvoided(IDFL,[PAT | ATTRSINTENT]).
 
 avoided(IDFL,ATTRSINTENT) :- nuAvoided(IDFL,[IDPAT | ATTRSINTENT]) .
 
-nuAvoided(IDFL,[IDPAT | ATTRSINTENT]) :- 
-       xsafetyPattern(IDPAT,[PAT,[TARGET | OTHERCPS],INPUTS,INTERNAL,OUTPUTS]),
-       safetyIntent(PAT,[TYPE | ATTRSINTENT]),
-       cp(TARGET), 
-	     fl(IDFL,ATTRSFL),
-       ft2fl(IDFT,IDFL),
-  	   getFaultCP(IDFT,TARGET),
-       getFailureType(IDFL,FTYPE),
-       #member(FTYPE,TYPE).
+nuAvoided(IDFL,[IDPAT | ATTRSINTENT]) :- xsafetyPattern(IDPAT,[PAT,[TARGET | OTHERCPS],INPUTS,INTERNAL,OUTPUTS]),
+                                         safetyIntent(PAT,[TYPE | ATTRSINTENT]),
+                                         cp(TARGET), 
+                                 	     fl(IDFL,ATTRSFL),
+                                         ft2fl(IDFT,IDFL),
+                                   	     getFaultCP(IDFT,TARGET),
+                                         getFailureType(IDFL,FTYPE),
+                                         #member(FTYPE,TYPE),
+                                         getSafIntentASIL(PAT,PAT_ASIL),
+                                         mcs(IDMCS,FAILURES),
+                                         #member(IDFL,FAILURES),       
+                                         lmcs2hz(IDMCS,HZ),
+                                         asil(HZ,HZ_ASIL),
+                                         higherEqualThan(PAT_ASIL,HZ_ASIL).
 
 
 xsafetyPattern([nuIDSAFPAT,PAT,CTR],[PAT,[TARGET,[nuREDUNDANCY,CTR],[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
 v
 nxsafetyPattern([nuIDSAFPAT,PAT,CTR],[PAT,[TARGET,[nuREDUNDANCY,CTR],[nuCHECKER,CTR]],[nuINPUTS,CTR],[nuINTERNAL,CTR],[nuOUTPUTS,CTR]])
   :- fl(IDFL,ATTRSFL),
-	   getFailureType(IDFL,TYPE),
-	   ft(IDFT,ATTRSFT),
-	   getFaultCP(IDFT,TARGET),			                 
+	  getFailureType(IDFL,TYPE),
+	  ft(IDFT,ATTRSFT),
+	  getFaultCP(IDFT,TARGET),			                 
      ft2fl(IDFT,IDFL),
-	   counterSafPat(CTR),
+	  counterSafPat(CTR),
      exploreSafPat(PAT).
 
 %:- #count{CTR : xsafetyPattern([nuIDPAT,CTR],_)} > N, explore(N,PAT) .

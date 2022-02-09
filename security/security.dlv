@@ -214,6 +214,11 @@ bdCh(Comm,HWCP) :- ch(Id,_,Y),
 % ======= Security Patterns =======
 
 
+% === Signature based IDS ===
+%securityIntent(NAME OF THE PATTERN, ADDRESSED SECURITY PROPERTY, SUITABLE FOR INTRA OR INTER SYSTEMS, TYPE OF MEASURE)
+%securityIntent(signature_based_ids,[authenticity,integrity],intra_system,[detection,prevention,mitigation]) 
+
+
 % === Firewall ===
 assumption(firewall,are_verified,[CHECKER]) :- 
   		   securityPattern(IDPAT,[firewall,[X,Y,CHECKER],_,_,_]).
