@@ -102,6 +102,7 @@ ctl(IDHZ,ATTRSINTENT) :- hz(IDHZ,ATTRSHZ),
 
 
 getMinIntent([IDMCS], ATTRSINTENT) :- avoidedMCS(IDMCS,ATTRSINTENT) .
+
 getMinIntent([MCS1 | LMCS], [PATASIL,PATFOP,PATFSILENT,PATFSAFE]) 
           :- avoidedMCS(MCS1,[PATASIL1,PATFOP1,PATFSILENT1,PATFSAFE1]),
              getMinIntent(LMCS, [PATASIL2,PATFOP2,PATFSILENT2,PATFSAFE2]),
@@ -113,9 +114,17 @@ getMinIntent([MCS1 | LMCS], [PATASIL,PATFOP,PATFSILENT,PATFSAFE])
              #subList([MCS1 | LMCS],LMCS2),
              not #member(MCS1,LMCS) .    
 
+% TODO: TEST!
+%% getMinIntent([MCS1 | LMCS], not_avoided) :- lmcs2hz(LMCS2,IDHZ),
+%%                                             not avoidedMCS(MCS1,_),
+%%                                             #subList([MCS1 | LMCS],LMCS2),
+%%                                             not #member(MCS1,LMCS) .    
+
+
+
 
 avoidedMCS(IDMCS,ATTRSINTENT) :- mcs(IDMCS,FLISTFAIL),
-                     			       fl(IDFL,ATTRSFL),
+                     			   fl(IDFL,ATTRSFL),
                                  #member(IDFL,FLISTFAIL),
                                  avoided(IDFL,[PAT | ATTRSINTENT]).
 
@@ -216,7 +225,7 @@ safPat(IDPAT,[simplexArchitectureFS,TARGET]) :- safetyPattern(IDPAT,[simplexArch
 safetyPattern(IDPAT,[simplexArchitectureFS,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]) :- xsafetyPattern(IDPAT,[simplexArchitectureFS,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]).
 
 
-% ****** Safety Pattern: Homogeneous Duplex Pattern (SA)  ***********
+% ****** Safety Pattern: Homogeneous Duplex Pattern (HmD)  ***********
 
 %always after 1st failure -> alaf1fl
 %after most 1st failures -> afmo1fl
@@ -225,7 +234,7 @@ safetyPattern(IDPAT,[simplexArchitectureFS,[TARGET,REDUNDANCY,CHECKER],INP,INT,O
 %after some 1st failures or 2nd failures -> afsm1fl2fl
 %never -> ne
 assumption(homogeneousDuplex,are_duplicated,[TARGET,REDUNDANCY]) :- 
-  safetyPattern(IDPAT,[heterogeneousDuplex,[TARGET,REDUNDANCY,_],_,_,_]).
+  safetyPattern(IDPAT,[homogeneousDuplex,[TARGET,REDUNDANCY,_],_,_,_]).
 
 safetyIntent(homogeneousDuplex,[[err],d,most1fail,most2fail,never]) .
 
@@ -233,7 +242,7 @@ safPat(IDPAT,[homogeneousDuplex,TARGET]) :- safetyPattern(IDPAT,[homogeneousDupl
 
 safetyPattern(IDPAT,[homogeneousDuplex,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]) :- xsafetyPattern(IDPAT,[homogeneousDuplex,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]).
 
-% ****** Safety Pattern: Heterogeneous Duplex Pattern (SA)  ***********
+% ****** Safety Pattern: Heterogeneous Duplex Pattern (HtD)  ***********
 
 %always after 1st failure -> alaf1fl
 %after most 1st failures -> afmo1fl
@@ -249,6 +258,19 @@ safetyIntent(heterogeneousDuplex,[[err],d,most1fail,most2fail,never]) .
 safPat(IDPAT,[heterogeneousDuplex,TARGET]) :- safetyPattern(IDPAT,[heterogeneousDuplex,[TARGET,REDUNDANCY,_],_,_,_]).
 
 safetyPattern(IDPAT,[heterogeneousDuplex,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]) :- xsafetyPattern(IDPAT,[heterogeneousDuplex,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]).
+
+
+% ****** Safety Pattern: Acceptance Voting Pattern (AV)  ***********
+
+assumption(acceptanceVoting,are_independent,[TARGET,REDUNDANCY]) :- 
+  safetyPattern(IDPAT,[acceptanceVoting,[TARGET,REDUNDANCY,_],_,_,_]).
+
+safetyIntent(acceptanceVoting,[[err],d,most1fail,most2fail,never]) .
+
+safPat(IDPAT,[acceptanceVoting,TARGET]) :- safetyPattern(IDPAT,[acceptanceVoting,[TARGET,REDUNDANCY,_],_,_,_]).
+
+safetyPattern(IDPAT,[acceptanceVoting,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]) :- xsafetyPattern(IDPAT,[acceptanceVoting,[TARGET,REDUNDANCY,CHECKER],INP,INT,OUT]).
+
 
 % ****** Safety Pattern: Triple Modular Redundancy (TMR)  ***********
 
